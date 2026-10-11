@@ -1,0 +1,31 @@
+{
+ "topic": "CD009519",
+ "title": "PET-CT for assessing mediastinal lymph node involvement in patients with suspected resectable non-small cell lung cancer",
+ "written_from": "review title only (original Cochrane query not consulted)",
+ "pubmed": [
+  {
+   "q": "\"Positron Emission Tomography Computed Tomography\"[Mesh] OR \"Positron-Emission Tomography\"[Mesh] OR \"Fluorodeoxyglucose F18\"[Mesh]"
+  },
+  {
+   "q": "PET[tiab] OR \"positron emission\"[tiab] OR FDG[tiab] OR fluorodeoxyglucose[tiab] OR \"PET-CT\"[tiab] OR \"PET/CT\"[tiab]"
+  },
+  {
+   "q": "#1 OR #2"
+  },
+  {
+   "q": "\"Carcinoma, Non-Small-Cell Lung\"[Mesh] OR \"Lung Neoplasms\"[Mesh]"
+  },
+  {
+   "q": "NSCLC[tiab] OR \"lung cancer\"[tiab] OR \"lung cancers\"[tiab] OR \"lung carcinoma\"[tiab] OR \"lung neoplasm\"[tiab] OR \"lung neoplasms\"[tiab] OR \"lung tumor\"[tiab] OR \"lung tumour\"[tiab] OR \"bronchogenic carcinoma\"[tiab]"
+  },
+  {
+   "q": "#4 OR #5"
+  },
+  {
+   "q": "\"Lymph Nodes\"[Mesh] OR \"Lymphatic Metastasis\"[Mesh] OR \"Neoplasm Staging\"[Mesh] OR mediastin*[tiab] OR \"lymph node\"[tiab] OR \"lymph nodes\"[tiab] OR nodal[tiab] OR staging[tiab]"
+  },
+  {
+   "q": "#3 AND #6 AND #7"
+  }
+ ]
+}

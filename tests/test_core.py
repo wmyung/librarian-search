@@ -60,7 +60,8 @@ def test_dedup_priority_and_title_match():
     a = new_record("embase", title="Use of vitamin K in osteoporosis", authors=["Smith, P."], year="2008")
     b = new_record("wos", title="USE OF VITAMIN K IN OSTEOPOROSIS", authors=["Smith, P."], year="2008")
     c = new_record("pubmed", title="Something else entirely about calcium", authors=["Doe, J."], year="2001", doi="10.1000/x")
-    d = new_record("embase", title="Different title", authors=["Roe, R."], year="2001", doi="10.1000/X")
+    d = new_record("embase", title="Different title", authors=["Doe, J."], year="2001", doi="10.1000/X", pages="5")
+    c["pages"] = "5-9"
     e = new_record("embase", title="Use of vitamin K in osteoporosis", authors=["Other, Q."], year="1995")
     u, dups = deduplicate([a, b, c, d, e], ["pubmed", "embase", "wos"])
     assert len(u) == 3 and len(dups) == 2
@@ -97,3 +98,41 @@ def test_write_library(tmp_path):
     assert b"PubMed 5" in spec
     hdr, n = struct.unpack("<ii", mem[:8])
     assert hdr == 0x02000000 and n == 3
+
+
+def test_dedup_supplement_doi_not_merged():
+    # one DOI for a whole conference supplement: distinct abstracts must stay separate
+    a = new_record("embase", title="Abstract one about bone density", authors=["Lee, A."], year="2017",
+                   doi="10.1000/supp-2017", pages="S10")
+    b = new_record("embase", title="Completely different abstract on fracture healing", authors=["Kim, B."],
+                   year="2017", doi="10.1000/supp-2017", pages="S55")
+    u, d = deduplicate([a, b], ["embase"])
+    assert len(u) == 2 and not d
+
+
+def test_extras_overlap_previous_known_prisma(tmp_path):
+    from litsearch.extras import mark_previous, match_known, overlap, parse_known, prisma_svg, write_asreview_csv
+    a = new_record("pubmed", title="Vitamin D and hip fracture in older women", authors=["Doe, A."], year="2010",
+                   pmid="11111111", doi="10.1000/a")
+    b = new_record("embase", title="Vitamin D and hip fracture in older women", authors=["Doe, A."], year="2010",
+                   doi="10.1000/a")
+    c = new_record("embase", title="Calcium supplements and vertebral fracture", authors=["Roe, B."], year="2012")
+    u, d = deduplicate([a, b, c], ["pubmed", "embase"])
+    ov = overlap(u, ["pubmed", "embase"])
+    assert ov["matrix"]["pubmed"]["embase"] == 1 and ov["only_in_source"]["embase"] == 1
+    prev = [new_record("previous", title="Calcium supplements and vertebral fracture", authors=["Roe, B."], year="2012")]
+    seen = mark_previous(u, prev)
+    assert seen == {r["uid"] for r in u if r["title"].startswith("Calcium")}
+    known = parse_known(["11111111", "10.1000/zzz", "# comment"])
+    res = match_known(known, u, d)
+    assert [k["found"] for k in res] == [True, False]
+    ctx = {"db_order": ["pubmed", "embase"], "retrieved": {"pubmed": 1, "embase": 2}, "n_dups": 1, "n_unique": 2}
+    assert "Duplicate records removed (n = 1)" in prisma_svg(ctx)
+    write_asreview_csv(tmp_path / "a.csv", u, {u[0]["uid"]})
+    assert (tmp_path / "a.csv").read_text().splitlines()[1].endswith(",1")
+
+
+def test_retracted_flag():
+    from litsearch.classify import flags
+    r = new_record("pubmed", title="Some trial", pubtypes=["Journal Article", "Retracted Publication"])
+    assert flags(r)["retracted"]

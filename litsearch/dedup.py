@@ -1,14 +1,18 @@
 """Cross-database de-duplication.
 
-Records are linked when they share a DOI or PMID, or when their normalised titles match (exactly, or one
-is a >=40-character prefix of the other, e.g. Embase titles carrying an appended translation) with
-publication years within one year and a compatible first author. Each cluster keeps the record from the
+Records are linked when they share a PMID; when they share a DOI and their titles and first pages are
+compatible (conference supplements often carry one DOI for a whole issue of abstracts); or when their
+normalised titles match (exactly, or one is a >=40-character prefix of the other, e.g. Embase titles carrying
+an appended translation) with publication years within one year, a compatible first author, and no
+conflicting first page. Benchmarked on the ASySD labelled test set (benchmarks/dedup_asysd.py). Each cluster keeps the record from the
 highest-priority database (typical librarian order: MEDLINE > Embase > Cochrane > WoS > ...); the rest
 become duplicates, mirroring EndNote's "move duplicates to trash" workflow.
 """
 from __future__ import annotations
 
+import re
 from collections import defaultdict
+from difflib import SequenceMatcher
 
 from .records import first_author_key, title_key
 
@@ -46,6 +50,24 @@ def _is_trial(r: dict) -> bool:
     return r["type"] == "TRIAL"
 
 
+def _first_page(r: dict) -> str:
+    m = re.match(r"\s*([A-Za-z]?\d+)", r.get("pages") or "")
+    return m.group(1).lower() if m else ""
+
+
+def _titles_compatible(ka: str, kb: str) -> bool:
+    if not ka or not kb:
+        return True
+    if ka == kb or (min(len(ka), len(kb)) >= 40 and (ka.startswith(kb) or kb.startswith(ka))):
+        return True
+    return SequenceMatcher(None, ka, kb).ratio() >= 0.9
+
+
+def _pages_ok(a: dict, b: dict) -> bool:
+    pa, pb = _first_page(a), _first_page(b)
+    return not pa or not pb or pa == pb
+
+
 def deduplicate(records: list[dict], priority: list[str]) -> tuple[list[dict], list[dict]]:
     """Return (unique, duplicates). Adds keys: uid, found_in, dup_of, dup_reason."""
     rank = {db: i for i, db in enumerate(priority)}
@@ -63,14 +85,21 @@ def deduplicate(records: list[dict], priority: list[str]) -> tuple[list[dict], l
             by_pmid[r["pmid"]].append(i)
         if _is_trial(r) and r["accession"]:
             by_nct[r["accession"]].append(i)
+    tk = [title_key(r["title"]) for r in recs]
     for label, idx in (("DOI", by_doi), ("PMID", by_pmid), ("NCT", by_nct)):
         for ids in idx.values():
-            for j in ids[1:]:
-                if uf.find(j) != uf.find(ids[0]):
-                    reason.setdefault(j, label)
-                uf.union(ids[0], j)
+            for x, a in enumerate(ids):
+                for b in ids[x + 1:]:
+                    ra, rb = recs[a], recs[b]
+                    same_paper = (_titles_compatible(tk[a], tk[b]) and _pages_ok(ra, rb)) or (
+                        first_author_key(ra) and first_author_key(ra) == first_author_key(rb)
+                        and _years_ok(ra["year"], rb["year"]) and _first_page(ra) and _first_page(ra) == _first_page(rb))
+                    if label == "DOI" and not same_paper:
+                        continue   # e.g. conference supplements: one DOI for a whole issue of abstracts
+                    if uf.find(a) != uf.find(b):
+                        reason.setdefault(b, label)
+                    uf.union(a, b)
 
-    tk = [title_key(r["title"]) for r in recs]
     blocks = defaultdict(list)
     for i, k in enumerate(tk):
         if len(k) >= 20:
@@ -87,7 +116,7 @@ def deduplicate(records: list[dict], priority: list[str]) -> tuple[list[dict], l
                     continue
                 ka, kb = tk[a], tk[b]
                 same = ka == kb or (min(len(ka), len(kb)) >= 40 and (ka.startswith(kb) or kb.startswith(ka)))
-                if same and _years_ok(ra["year"], rb["year"]) and _authors_ok(ra, rb):
+                if same and _years_ok(ra["year"], rb["year"]) and _authors_ok(ra, rb) and _pages_ok(ra, rb):
                     if uf.find(a) != uf.find(b):
                         reason.setdefault(b, "Title/Year/Author")
                     uf.union(a, b)

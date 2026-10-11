@@ -137,7 +137,8 @@ def _row(r: dict, now: int, trash: bool) -> dict:
 
 
 def write_library(path: Path, unique: list[dict], dups: list[dict], db_order: list[str],
-                  retrieved: dict[str, int], flag_map: dict[int, dict]) -> Path:
+                  retrieved: dict[str, int], flag_map: dict[int, dict],
+                  extra_groups: dict[str, set[int]] | None = None) -> Path:
     """Create <path>.enl and <path>.Data. Record numbers equal record 'uid'."""
     path = Path(path).with_suffix(".enl")
     data_dir = path.with_suffix(".Data")
@@ -177,12 +178,22 @@ def write_library(path: Path, unique: list[dict], dups: list[dict], db_order: li
         db_group_uuids.append(gu)
         gid_num += 1
     for key, label, term, _rx in FLAGS:
-        if not term:
+        if key == "trialreg":
             continue
         ids = [r["uid"] for r in unique if flag_map.get(r["uid"], {}).get(key)]
+        if not term and not ids:
+            continue
         gu = str(uuid.uuid4()).upper()
         con.execute("INSERT INTO groups(group_id,recs_stamp,spec,members) VALUES(?,?,?,?)",
-                    (gid_num, 0, _group_xml(gu, label, now, smart_term=term).encode(), _members(ids)))
+                    (gid_num, 0, _group_xml(gu, label, now, smart_term=term or None).encode(), _members(ids)))
+        smart_uuids.append(gu)
+        gid_num += 1
+    for label, ids in (extra_groups or {}).items():
+        if not ids:
+            continue
+        gu = str(uuid.uuid4()).upper()
+        con.execute("INSERT INTO groups(group_id,recs_stamp,spec,members) VALUES(?,?,?,?)",
+                    (gid_num, 0, _group_xml(gu, label, now).encode(), _members(sorted(ids))))
         smart_uuids.append(gu)
         gid_num += 1
     trial_ids = [r["uid"] for r in unique if r["type"] == "TRIAL"]

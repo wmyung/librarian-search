@@ -16,6 +16,7 @@ FLAGS = [
     ("case", "case report/series", "case report", r"\bcase reports?\b|\bcase series\b|\ba case of\b"),
     ("review", "review", "review", r"\breview\b"),
     ("guideline", "guideline", "guideline", r"\bguidelines?\b|consensus statement|practice parameter"),
+    ("retracted", "retracted", "", r"retracted publication|retracted article|^retracted\b|^withdrawn\b"),
     ("trialreg", "trial registration", "", r"$^"),
 ]
 

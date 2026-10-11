@@ -1,0 +1,22 @@
+{
+ "topic": "CD010772",
+ "title": "Informant Questionnaire on Cognitive Decline in the Elderly (IQCODE) for the diagnosis of dementia within a secondary care setting",
+ "written_from": "review title only (original Cochrane query not consulted)",
+ "pubmed": [
+  {
+   "q": "IQCODE[tiab] OR \"Informant Questionnaire on Cognitive Decline\"[tiab] OR \"informant questionnaire\"[tiab]"
+  },
+  {
+   "q": "\"Dementia\"[Mesh] OR \"Cognitive Dysfunction\"[Mesh]"
+  },
+  {
+   "q": "dement*[tiab] OR alzheimer*[tiab] OR \"cognitive impairment\"[tiab] OR \"cognitive decline\"[tiab] OR \"cognitive disorder\"[tiab] OR \"cognitive disorders\"[tiab]"
+  },
+  {
+   "q": "#2 OR #3"
+  },
+  {
+   "q": "#1 AND #4"
+  }
+ ]
+}

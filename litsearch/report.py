@@ -39,12 +39,16 @@ def prisma_s(strategy: dict, ctx: dict) -> list[tuple]:
                                    f"articles using OpenAlex ({ctx.get('citation_date', '')})") if cit
          else "Not performed (recommended once key trials and systematic reviews are identified)"),
         (6, "Contacts", strategy.get("contacts", "Not applicable")),
-        (7, "Other methods", strategy.get("other_methods", "Not applicable")),
+        (7, "Other methods", strategy.get("other_methods") or (
+            f"Validation set of {len(ctx['validation'])} known relevant studies used to check sensitivity "
+            f"({sum(1 for k in ctx['validation'] if k['found'])} retrieved)" if ctx.get("validation") else "Not applicable")),
         (8, "Full search strategies", "All strategies are in the 'Search strategy' sheet of this workbook (suitable as a supplementary table)"),
         (9, "Limits and restrictions", strategy.get("limits_en") or strategy.get("limits", "")),
         (10, "Search filters", strategy.get("filters", "No study-design search filters were used")),
         (11, "Prior work", strategy.get("prior_work", "Not applicable")),
-        (12, "Updates", strategy.get("updates", "Not applicable")),
+        (12, "Updates", strategy.get("updates") or (
+            f"Update search: {len(ctx['previous_uids'])} records matched a previous search export and were marked as previously screened"
+            if ctx.get("n_previous_records") else "Not applicable")),
         (13, "Dates of searches", "; ".join(f"{db_info(d)['short']}: {dates.get(d, ctx['search_date'])}" for d in ctx["db_order"] if d != "citation")),
         (14, "Peer review", strategy.get("peer_review", "No formal peer review of the search strategy (PRESS); librarian review recommended if required")),
         (15, "Total records", "; ".join(f"{db_info(d)['short']} {ctx['retrieved'].get(d, 0)}" for d in ctx["db_order"]) +
@@ -91,6 +95,14 @@ def methods_en(strategy: dict, ctx: dict) -> str:
     p.append(f"In total, {ctx['total_retrieved']:,} records were retrieved; after removal of {ctx['n_dups']:,} duplicates "
              f"(matching on DOI, PMID, and normalised title, publication year, and first author; EndNote 21), "
              f"{ctx['n_unique']:,} unique records remained for screening.")
+    if ctx.get("validation"):
+        v = ctx["validation"]
+        f = sum(1 for k in v if k["found"])
+        p.append(f"Search sensitivity was checked against a validation set of {len(v)} known relevant studies, "
+                 f"of which {f} ({f / len(v):.0%}) were retrieved.")
+    if ctx.get("n_previous_records"):
+        p.append(f"Records already screened in the previous search ({ctx['n_previous_records']:,} records) were identified "
+                 f"using the same deduplication rules; {ctx['n_unique'] - len(ctx['previous_uids']):,} records were new.")
     p.append("The full search strategies for each source are provided in Supplementary Table S1.")
     return " ".join(p)
 
@@ -115,6 +127,16 @@ def letter_draft(strategy: dict, ctx: dict) -> str:
                if cit else "Once the key trials or systematic reviews are identified, we recommend checking their reference lists "
                            "and citing articles (citation searching).")
     sources = ", ".join(db_info(d)["name"] for d in ctx["db_order"] if d != "citation")
+    val_txt = prev_txt = ""
+    if ctx.get("validation"):
+        v = ctx["validation"]
+        f = sum(1 for k in v if k["found"])
+        missed = [k["id"] for k in v if not k["found"]]
+        val_txt = (f"\nTo check sensitivity, we tested the search against {len(v)} known relevant studies: {f} were retrieved"
+                   + (f"; not retrieved: {', '.join(missed)} (see the Validation sheet for the reason)." if missed else ".") + "\n")
+    if ctx.get("n_previous_records"):
+        prev_txt = (f"\nCompared with your previous search, {len(ctx['previous_uids']):,} records were already screened and "
+                    f"{ctx['n_unique'] - len(ctx['previous_uids']):,} are new (EndNote group \"New since previous search\").\n")
     return f"""Dear Researcher,
 
 Thank you for your request regarding "{t}". We have completed the literature search and summarise it below.
@@ -138,7 +160,7 @@ We searched {sources}, combining each database's controlled vocabulary with free
 After deduplication, {ctx['n_unique']:,} unique records remain. To support screening, records are flagged by title, abstract and keywords ({flags}). These flags are screening aids, not search limits; every record is retained.
 
 {{{{2-3 sentences of screening advice suited to the review type}}}}
-
+{val_txt}{prev_txt}
 ## 3. Supplementary searching
 
 {cit_txt}
@@ -149,6 +171,8 @@ After deduplication, {ctx['n_unique']:,} unique records remain. To support scree
 - EndNote library (.zip): one group per source, smart groups (random*, systematic review, placebo, meta-analysis, etc.), duplicates kept in the Trash
 - RIS file for other tools (Zotero, Covidence, Rayyan)
 - Draft methods text for the manuscript: methods_PRISMA-S.md
+- PRISMA 2020 flow diagram with the identification stage completed (PRISMA_2020_flow.svg)
+- ASReview import file for AI-assisted screening (*_asreview.csv)
 
 We hope this is helpful for your research.
 

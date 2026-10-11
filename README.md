@@ -6,6 +6,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Claude Code skill](https://img.shields.io/badge/Claude%20Code-skill-d97757)](skill/SKILL.md)
 [![PRISMA-S](https://img.shields.io/badge/reporting-PRISMA--S-6f42c1)](https://doi.org/10.1186/s13643-020-01542-z)
+[![Search recall](https://img.shields.io/badge/recall%20on%208%20Cochrane%20reviews-93%25-success)](#benchmarks)
+[![Dedup](https://img.shields.io/badge/dedup%20(ASySD%20set)-588%20vs%20584%20true-success)](#benchmarks)
 
 When you ask a medical librarian for a literature search for a review, you get back a **reply letter**, a **search-strategy spreadsheet** (every database, every line, every hit count), and an **EndNote library** with one group per database and duplicates in the Trash. librarian-search produces that same package. The search runs in minutes, and a librarian or reviewer can audit every line.
 
@@ -21,10 +23,12 @@ No vector search, no black-box "AI search". Every record comes from a reproducib
 | File | Contents |
 |---|---|
 | `*_reply_letter.docx` / `.md` | Search strategy rationale, hits per source and after deduplication, screening advice, citation searching, attachment guide |
-| `*_search_strategy_YYYYMMDD.xlsx` | `Search strategy` (DB × line no. × query × hits, plus a retrieved / after-dedup summary table), `Records` (screening sheet with study-type flags, abstract, include/exclude columns), `Duplicates` (what was removed and why), `PRISMA-S` |
+| `*_search_strategy_YYYYMMDD.xlsx` | `Search strategy` (DB × line no. × query × hits, plus a retrieved / after-dedup summary table), `Records` (screening sheet with study-type and retraction flags, abstract, include/exclude columns), `Source overlap` (what each database found, alone and in common), `Validation` (which known relevant studies were found, and which concept line lost the rest), `Duplicates` (what was removed and why), `PRISMA-S` |
 | `*_EndNote.zip` | Native EndNote 20/21 library (`.enl` + `.Data`): groups `"<DB> <n>"`, smart groups (random\*, systematic review, placebo, meta-analysis, case report/series, review, guideline), duplicates in the Trash with the reason in Research Notes |
 | `*_N.ris` | Deduplicated records for Zotero, Covidence or Rayyan |
 | `methods_PRISMA-S.md` | A ready-to-edit Methods paragraph plus all 16 PRISMA-S items filled in |
+| `PRISMA_2020_flow.svg` | PRISMA 2020 flow diagram with the identification stage completed (records per source, duplicates removed, records to screen) |
+| `*_asreview.csv` | Import file for [ASReview](https://github.com/asreview/asreview) active-learning screening, with validation-set studies pre-labelled as relevant |
 
 The `Search strategy` sheet looks like a librarian's worksheet:
 
@@ -48,11 +52,52 @@ The `Search strategy` sheet looks like a librarian's worksheet:
 | Cross-database deduplication with audit trail | ✅ (EndNote) | ❌ | dedup only | ✅ |
 | Native EndNote library with groups | ✅ | ❌ | ❌ | ✅ |
 | PRISMA-S reporting text | sometimes | ❌ | ❌ | ✅ |
+| Validation-set recall check with diagnosis | sometimes | ❌ | ❌ | ✅ (which concept lost each missed study) |
+| Update searches (new vs previously screened) | ✅ | ❌ | dedup tools | ✅ |
+| Published benchmark | n/a | rarely | some | ✅ [below](#benchmarks) |
 | Turnaround | days to weeks | minutes | per step | minutes |
 
 librarian-search doesn't replace a librarian's judgement. It gives you a librarian-structured first pass that a librarian can review quickly (PRESS), and that a journal reviewer can audit.
 
-**Validation so far:** translated to PubMed, a librarian's Ovid MEDLINE strategy returned 192 records against the librarian's 189 (searched about six weeks earlier). Using the same Embase export, unique Embase records after deduplication were 1,200, against 1,216 from the librarian's EndNote deduplication. EndNote 21 opens the generated libraries with groups, smart groups and Trash intact.
+Compared with end-to-end LLM review pipelines (TrialMind, otto-SR, AgentSLR), librarian-search does less: it stops at a screened-ready, deduplicated record set. It does that step the way journals and librarians expect: Boolean, multi-database, reproducible, and reported to PRISMA-S. Its output feeds screening tools such as ASReview, Covidence or Rayyan.
+
+---
+
+## Benchmarks
+
+Both benchmarks are scripts in [`benchmarks/`](benchmarks/) that download public data and can be rerun.
+
+### Search recall: 8 Cochrane diagnostic accuracy reviews (CLEF eHealth TAR 2017)
+
+PubMed strategies were written **from the review title only**, as the skill does, without consulting the original Cochrane search. Recall was measured against the studies finally included in each review.
+
+| Review | Included studies found | Our records (to review date) | Original Cochrane query |
+|---|---|---|---|
+| CD008081 OCT for diabetic macular oedema | **10/10** | 2,848 | 970 |
+| CD009135 Rapid tests for visceral leishmaniasis | **19/19** | 2,510 | 791 |
+| CD009185 PCT/CRP/ESR for pyelonephritis in children | 15/23 | 316 | 1,615 |
+| CD009519 PET-CT for mediastinal staging in NSCLC | **46/46** | 2,309 | 5,971 |
+| CD009551 PCR for invasive aspergillosis | **16/16** | 4,337 | 1,911 |
+| CD010023 CT/MRI/bone scan for scaphoid fracture | **14/14** | 1,849 | 981 |
+| CD010542 Transient elastography in alcoholic liver disease | 6/8 | 147 | 348 |
+| CD010772 IQCODE for dementia | **11/11** | 196 | 316 |
+| **Total** | **137/147 (93.2%)**, 100% in 6/8 reviews | median 1.9× the original | |
+
+All 10 misses were diagnosed by `validate`. In CD009185 every missed study failed the index-test concept: their abstracts never mention CRP, procalcitonin or ESR. In CD010542 both misses failed the "alcohol" concept. These lessons are now rules in the skill: OR reference-standard terms into the index-test concept for diagnostic reviews, avoid population concepts that abstracts may omit, and always run a validation set. Real searches also go through Embase, Cochrane and citation searching, which this PubMed-only benchmark leaves out.
+
+### Deduplication: ASySD labelled test set (1,845 records, 584 true unique studies)
+
+| Method | Unique records kept |
+|---|---|
+| EndNote default deduplication | 949 |
+| ASySD (reported) | 586 |
+| **librarian-search** | **588** (2 distinct studies wrongly merged, 6 duplicates missed) |
+
+The first version of our deduplication merged 54 distinct conference abstracts, because whole conference supplements share a single DOI. DOI matches now also require compatible titles and first pages, as ASySD does.
+
+### Against a librarian
+
+Translated to PubMed, a medical librarian's Ovid MEDLINE strategy returned 192 records against the librarian's 189 (searched about six weeks earlier). With the same Embase export, deduplication left 1,204 unique Embase records against 1,216 from the librarian's EndNote deduplication. EndNote 21 opens the generated libraries with groups, smart groups and Trash intact.
 
 ---
 
@@ -69,6 +114,8 @@ cp examples/vitamin_d_fracture_strategy.json projects/vitd/strategy.json
 $LS mesh "cholecalciferol"                 # MeSH headings + entry terms
 $LS count projects/vitd                    # per-line hit counts (iterate on the strategy)
 $LS run projects/vitd                      # retrieve records from automatic sources
+$LS validate projects/vitd --known 12345678 10.xxxx/known-study   # recall of known relevant studies + diagnosis
+$LS suggest projects/vitd --from-known     # frequent MeSH/keywords the strategy does not cover yet
 
 # Subscription databases: run the lines from the workbook via your institution, export RIS, then
 $LS set-counts projects/vitd --db embase 98765 54321 … --date 2026-10-01
@@ -77,6 +124,7 @@ $LS import projects/vitd --db embase embase_export.ris --date 2026-10-01
 $LS cite projects/vitd --seed 10.xxxx/your-key-review 12345678   # backward + forward citation searching
 $LS build projects/vitd                    # dedup + deliverables + letter_draft.md
 # edit letter_draft.md -> letter.md, run build again -> final zip with the reply letter .docx
+$LS build projects/vitd --previous last_year.ris   # update search: mark records screened last time
 ```
 
 With the skill installed, just tell Claude Code: *"Do a literature search for my narrative review on vitamin D and fracture prevention."*
@@ -101,7 +149,7 @@ Search syntax pitfalls we hit and encoded in the skill, such as Europe PMC field
 
 ## Deduplication
 
-Records are linked by DOI, PMID or NCT number, or by normalised title (exact, or a ≥40-character prefix match for titles with appended translations) + publication year ±1 + compatible first author. The record from the highest-priority source is kept (default MEDLINE > Embase > Cochrane > WoS > …, configurable). Empty fields such as abstract or DOI are filled in from its duplicates. Every removed record stays in the EndNote Trash and in the `Duplicates` sheet, with its match basis.
+Records are linked by PMID or NCT number; by DOI when titles and first pages are also compatible (conference supplements often share one DOI); or by normalised title (exact, or a ≥40-character prefix match for titles with appended translations) + publication year ±1 + compatible first author + no conflicting first page. The record from the highest-priority source is kept (default MEDLINE > Embase > Cochrane > WoS > …, configurable). Empty fields such as abstract or DOI are filled in from its duplicates. Every removed record stays in the EndNote Trash and in the `Duplicates` sheet, with its match basis.
 
 ---
 
@@ -111,6 +159,8 @@ Records are linked by DOI, PMID or NCT number, or by normalised title (exact, or
 |---|---|
 | "Do a literature search / find prior studies on X" | Load the `librarian-search` skill → `init` → write `strategy.json` → `count` → `run` |
 | "Here are my Embase / Cochrane / WoS exports" | `set-counts` and `import` for each source |
+| "These papers must be found" | `validate --known …`; fix the concept line it reports, rerun, validate again |
+| "Update last year's search" | `build --previous <old export>` |
 | "Also check references and citing papers" | `cite` with 2–5 key trials or reviews; add `citation.filter` if off-topic |
 | "Give me the package" | `build` → fill `letter_draft.md` → `letter.md` → `build` → send the zip |
 
@@ -131,6 +181,23 @@ out/   <- deliverables and *_literature_search_YYYYMMDD.zip
 ```bash
 uv run --project ~/librarian-search python -m pytest ~/librarian-search/tests -q
 ```
+
+---
+
+## Ideas borrowed from other tools
+
+librarian-search adapts good ideas from established evidence-synthesis tools:
+
+| Feature | Inspired by |
+|---|---|
+| Deduplication that guards against shared supplement DOIs; benchmark data | [ASySD](https://github.com/camaradesuk/ASySD) (CAMARADES) |
+| Source overlap and unique-contribution analysis | [CiteSource](https://github.com/ESHackathon/CiteSource) |
+| Update searches that separate new records from ones already screened | [SR-Accelerator Deduplicator](https://sr-accelerator.com/) (Bond University) |
+| Validation-set recall checks for generated queries | Librarian practice; [TrialMind](https://arxiv.org/abs/2406.17755); Wang et al. (SIGIR 2025) |
+| Candidate term suggestions from retrieved records | [litsearchr](https://github.com/elizagrames/litsearchr) |
+| Retraction flags | Citation verification in [LitSearch II](https://github.com/seun-john/litsearch-ii) |
+| Screening handoff | [ASReview](https://github.com/asreview/asreview) |
+| Search-recall benchmark topics | [CLEF eHealth TAR](https://github.com/CLEF-TAR/tar) |
 
 ---
 

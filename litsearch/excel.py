@@ -113,6 +113,9 @@ def build_workbook(path: Path, strategy: dict, ctx: dict) -> Path:
     ws.freeze_panes = "A4"
 
     _records_sheet(wb, ctx)
+    _overlap_sheet(wb, ctx)
+    if ctx.get("validation"):
+        _validation_sheet(wb, ctx)
     _dups_sheet(wb, ctx)
     _prisma_sheet(wb, strategy, ctx)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -131,7 +134,8 @@ def _records_sheet(wb, ctx):
     ws = wb.create_sheet("Records")
     flag_cols = [(k, lbl) for k, lbl, _t, _r in FLAGS]
     heads = ["No.", "Authors", "Year", "Title", "Journal/Source", "Vol(Issue):Pages", "DOI", "PMID", "Found in", "Type"] + \
-            [lbl for _k, lbl in flag_cols] + ["Abstract", "Screening (include/exclude)", "Exclusion reason", "Notes"]
+            [lbl for _k, lbl in flag_cols] + ["Known relevant", "Previously screened", "Abstract",
+                                               "Screening (include/exclude)", "Exclusion reason", "Notes"]
     for i, h in enumerate(heads, 1):
         c = ws.cell(row=1, column=i, value=h)
         c.font, c.fill, c.alignment, c.border = BOLD, HEAD, CENTER, BOX
@@ -140,7 +144,9 @@ def _records_sheet(wb, ctx):
         fl = ctx["flags"][r["uid"]]
         vals = [r["uid"], _first_author(r), r["year"], r["title"], r["journal"], vi, r["doi"], r["pmid"],
                 ", ".join(db_info(d)["short"] for d in r["found_in"]), r["type"]] + \
-               ["●" if fl.get(k) else "" for k, _l in flag_cols] + [r["abstract"][:32000], "", "", ""]
+               ["●" if fl.get(k) else "" for k, _l in flag_cols] + \
+               ["●" if r["uid"] in ctx.get("known_uids", set()) else "",
+                "●" if r["uid"] in ctx.get("previous_uids", set()) else "", r["abstract"][:32000], "", "", ""]
         for i, v in enumerate(vals, 1):
             c = ws.cell(row=n, column=i, value=v)
             c.alignment = Alignment(vertical="top", wrap_text=(i in (4,)))
@@ -148,7 +154,7 @@ def _records_sheet(wb, ctx):
             ws.cell(row=n, column=7).hyperlink = f"https://doi.org/{r['doi']}"
         if r["pmid"]:
             ws.cell(row=n, column=8).hyperlink = f"https://pubmed.ncbi.nlm.nih.gov/{r['pmid']}/"
-    widths = [6, 18, 6, 60, 28, 14, 24, 10, 18, 9] + [9] * len(flag_cols) + [40, 14, 18, 18]
+    widths = [6, 18, 6, 60, 28, 14, 24, 10, 18, 9] + [9] * len(flag_cols) + [9, 10, 40, 14, 18, 18]
     for i, w in enumerate(widths, 1):
         ws.column_dimensions[get_column_letter(i)].width = w
     ws.freeze_panes = "E2"
@@ -184,3 +190,51 @@ def _prisma_sheet(wb, strategy, ctx):
     ws.column_dimensions["A"].width = 5
     ws.column_dimensions["B"].width = 34
     ws.column_dimensions["C"].width = 100
+
+
+def _head(ws, row, values):
+    for i, h in enumerate(values, 1):
+        c = ws.cell(row=row, column=i, value=h)
+        c.font, c.fill, c.alignment, c.border = BOLD, HEAD, CENTER, BOX
+
+
+def _overlap_sheet(wb, ctx):
+    """Source contribution and overlap (adapted from CiteSource)."""
+    ws = wb.create_sheet("Source overlap")
+    ov, dbs = ctx["overlap"], ctx["db_order"]
+    _head(ws, 1, ["Source", "Retrieved", "Unique records found", "Found only in this source", "Unique contribution (priority order)"])
+    for n, d in enumerate(dbs, 2):
+        for i, v in enumerate([db_info(d)["name"], ctx["retrieved"].get(d, 0), ov["in_source"][d],
+                               ov["only_in_source"][d], ctx["contributed"].get(d, 0)], 1):
+            ws.cell(row=n, column=i, value=v).border = BOX
+    r0 = len(dbs) + 4
+    ws.cell(row=r0 - 1, column=1, value="Pairwise overlap (unique records found in both sources)").font = BOLD
+    _head(ws, r0, [""] + [db_info(d)["short"] for d in dbs])
+    for n, a in enumerate(dbs, r0 + 1):
+        ws.cell(row=n, column=1, value=db_info(a)["short"]).font = BOLD
+        for i, b in enumerate(dbs, 2):
+            c = ws.cell(row=n, column=i, value=ov["matrix"][a][b])
+            c.border = BOX
+            if a == b:
+                c.fill = SUB
+    ws.column_dimensions["A"].width = 32
+    for i in range(2, len(dbs) + 3):
+        ws.column_dimensions[get_column_letter(i)].width = 16
+
+
+def _validation_sheet(wb, ctx):
+    ws = wb.create_sheet("Validation")
+    v = ctx["validation"]
+    found = sum(1 for k in v if k["found"])
+    ws.cell(row=1, column=1, value=f"Known relevant studies retrieved: {found} of {len(v)} "
+                                   f"(recall {found / len(v):.0%})").font = BOLD
+    _head(ws, 3, ["Known study", "Found", "Sources", "Record No.", "Title", "In PubMed", "PubMed lines not matched"])
+    for n, k in enumerate(v, 4):
+        diag = k.get("diagnosis") or {}
+        vals = [k["id"], "yes" if k["found"] else "NO", ", ".join(db_info(d)["short"] for d in k["sources"]),
+                k.get("uid"), k.get("title", ""), {True: "yes", False: "no"}.get(diag.get("in_pubmed"), ""),
+                ", ".join(f"#{x}" for x in diag.get("failed_lines", []))]
+        for i, val in enumerate(vals, 1):
+            ws.cell(row=n, column=i, value=val).border = BOX
+    for col, w in zip("ABCDEFG", [26, 8, 22, 10, 70, 10, 24]):
+        ws.column_dimensions[col].width = w

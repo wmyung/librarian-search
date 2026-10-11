@@ -1,0 +1,28 @@
+{
+ "topic": "CD009551",
+ "title": "Polymerase chain reaction blood tests for the diagnosis of invasive aspergillosis in immunocompromised people",
+ "written_from": "review title only (original Cochrane query not consulted)",
+ "pubmed": [
+  {
+   "q": "\"Polymerase Chain Reaction\"[Mesh] OR \"DNA, Fungal\"[Mesh] OR \"Nucleic Acid Amplification Techniques\"[Mesh]"
+  },
+  {
+   "q": "PCR[tiab] OR \"polymerase chain reaction\"[tiab] OR \"real-time\"[tiab] OR \"nucleic acid amplification\"[tiab] OR \"fungal DNA\"[tiab] OR \"Aspergillus DNA\"[tiab] OR \"molecular diagnosis\"[tiab] OR \"molecular detection\"[tiab]"
+  },
+  {
+   "q": "#1 OR #2"
+  },
+  {
+   "q": "\"Aspergillosis\"[Mesh] OR \"Aspergillus\"[Mesh] OR \"Invasive Fungal Infections\"[Mesh]"
+  },
+  {
+   "q": "aspergill*[tiab] OR \"invasive fungal\"[tiab] OR \"fungal infection\"[tiab] OR \"fungal infections\"[tiab] OR IFI[tiab] OR IFD[tiab]"
+  },
+  {
+   "q": "#4 OR #5"
+  },
+  {
+   "q": "#3 AND #6"
+  }
+ ]
+}

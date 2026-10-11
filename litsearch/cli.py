@@ -8,6 +8,9 @@
   librarian-search set-counts DIR --db embase 15862 4398 ...              record per-line counts for a manual database
   librarian-search cite DIR [--seed DOI|PMID ...] [--direction both]      OpenAlex citation searching
   librarian-search build DIR                                              deduplicate + deliverables (xlsx, EndNote, RIS, methods, letter draft)
+  librarian-search validate DIR --known PMID|DOI ...               recall of a validation set + diagnosis
+  librarian-search suggest DIR [--from-known]                      candidate terms missing from the strategy
+  librarian-search build DIR --previous OLD.ris                    update search: mark previously screened
   librarian-search status DIR                                             progress summary
 """
 from __future__ import annotations
@@ -27,6 +30,8 @@ from .classify import flags as compute_flags
 from .dedup import deduplicate
 from .endnote import write_library
 from .excel import build_workbook
+from .extras import (diagnose_pubmed, mark_previous, match_known, overlap, parse_known, prisma_svg,
+                     suggest_terms, write_asreview_csv)
 from .parsers import parse_file
 from .project import DEFAULT_PRIORITY, SKELETON, Project, db_info, expand_line, final_index
 from .records import load_jsonl, save_jsonl
@@ -203,9 +208,7 @@ def _stem(st) -> str:
     return re.sub(r'[\\/:*?"<>|]+', "", s).strip()[:60]
 
 
-def cmd_build(a):
-    proj = Project(Path(a.dir).expanduser())
-    st = proj.load()
+def _load_all(proj, st):
     priority = st.get("priority") or DEFAULT_PRIORITY
     files = {p.stem: p for p in proj.records_dir.glob("*.jsonl")} if proj.records_dir.exists() else {}
     if not files:
@@ -217,6 +220,60 @@ def cmd_build(a):
         retrieved[d] = len(rs)
         allrecs.extend(rs)
     unique, dups = deduplicate(allrecs, db_order)
+    return files, db_order, allrecs, retrieved, unique, dups
+
+
+def cmd_validate(a):
+    """Check that known relevant studies (validation set) are retrieved; diagnose misses on PubMed lines."""
+    proj = Project(Path(a.dir).expanduser())
+    st = proj.load()
+    v = st.setdefault("validation", {})
+    items = list(a.known or [])
+    if a.known_file:
+        items += Path(a.known_file).expanduser().read_text(encoding="utf-8").split()
+    if items:
+        v["known"] = items
+    known = parse_known(v.get("known", []))
+    if not known:
+        raise SystemExit("Give known relevant studies (PMID or DOI) with --known or --known-file")
+    _files, _order, _all, _ret, unique, dups = _load_all(proj, st)
+    res = match_known(known, unique, dups)
+    missed = [k["pmid"] for k in res if not k["found"] and k["pmid"]]
+    diag = diagnose_pubmed(st, missed)
+    for k in res:
+        if k["pmid"] in diag:
+            k["diagnosis"] = diag[k["pmid"]]
+    proj.runs_dir.mkdir(parents=True, exist_ok=True)
+    (proj.runs_dir / "validation.json").write_text(json.dumps({"date": today(), "results": res}, ensure_ascii=False, indent=1))
+    proj.save(st)
+    found = sum(1 for k in res if k["found"])
+    _say(f"Validation set: {found}/{len(res)} retrieved (recall {found / len(res):.0%})")
+    for k in res:
+        if not k["found"]:
+            d = k.get("diagnosis") or {}
+            why = ("not in PubMed" if d.get("in_pubmed") is False else
+                   f"fails PubMed line(s) {', '.join('#' + str(x) for x in d.get('failed_lines', []))}" if d else "")
+            _say(f"  MISSED {k['id']}  {why}")
+
+
+def cmd_suggest(a):
+    """Suggest candidate terms (frequent MeSH/keywords not yet in the strategy), as litsearchr does."""
+    proj = Project(Path(a.dir).expanduser())
+    st = proj.load()
+    _files, _order, _all, _ret, unique, dups = _load_all(proj, st)
+    base = unique
+    vpath = proj.runs_dir / "validation.json"
+    if a.from_known and vpath.exists():
+        uids = {k["uid"] for k in json.loads(vpath.read_text())["results"] if k["found"]}
+        base = [r for r in unique if r["uid"] in uids]
+    for term, n, kind in suggest_terms(base, st, a.top):
+        print(f"{n:>5}  {term}")
+
+
+def cmd_build(a):
+    proj = Project(Path(a.dir).expanduser())
+    st = proj.load()
+    files, db_order, allrecs, retrieved, unique, dups = _load_all(proj, st)
     contributed = Counter(r["db"] for r in unique)
     fl = {r["uid"]: compute_flags(r) for r in unique}
     flag_counts = Counter(k for f in fl.values() for k, v in f.items() if v)
@@ -235,6 +292,26 @@ def cmd_build(a):
         "search_date": st.get("search_date") or today(), "line_counts": line_counts, "final_index": fidx,
         "citation_log": cit.get("seeds", []), "citation_date": cit.get("date", ""),
     }
+    ctx["overlap"] = overlap(unique, db_order)
+    if getattr(a, "previous", None):
+        st["previous_files"] = [str(Path(f).expanduser().resolve()) for f in a.previous]
+        proj.save(st)
+    prev_recs = []
+    for f in st.get("previous_files", []):
+        prev_recs += parse_file(Path(f), "previous")
+    ctx["previous_uids"] = mark_previous(unique, prev_recs)
+    ctx["n_previous_records"] = len(prev_recs)
+    known = parse_known((st.get("validation") or {}).get("known", []))
+    if known:
+        res = match_known(known, unique, dups)
+        vpath = proj.runs_dir / "validation.json"
+        if vpath.exists():
+            old = {k["id"]: k.get("diagnosis") for k in json.loads(vpath.read_text())["results"]}
+            for k in res:
+                if old.get(k["id"]):
+                    k["diagnosis"] = old[k["id"]]
+        ctx["validation"] = res
+        ctx["known_uids"] = {k["uid"] for k in res if k["found"]}
     ctx["prisma_s"] = prisma_s(st, ctx)
 
     out = proj.out_dir
@@ -247,7 +324,11 @@ def cmd_build(a):
 
     enl_dir = out / "_endnote"
     enl_dir.mkdir()
-    enl = write_library(enl_dir / f"{stem}.enl", unique, dups, db_order, retrieved, fl)
+    groups = {"Known relevant (validation set)": ctx.get("known_uids", set())}
+    if prev_recs:
+        groups["New since previous search"] = {r["uid"] for r in unique} - ctx["previous_uids"]
+        groups["Previously screened"] = ctx["previous_uids"]
+    enl = write_library(enl_dir / f"{stem}.enl", unique, dups, db_order, retrieved, fl, groups)
     enl_zip = out / f"{stem}_EndNote.zip"
     with zipfile.ZipFile(enl_zip, "w", zipfile.ZIP_DEFLATED) as z:
         for p in sorted(enl_dir.rglob("*")):
@@ -262,14 +343,22 @@ def cmd_build(a):
                      "\n".join(f"{n}. **{item}**: {desc}" for n, item, desc in ctx["prisma_s"]) + "\n", encoding="utf-8")
     (proj.root / "letter_draft.md").write_text(letter_draft(st, ctx), encoding="utf-8")
     letter_md = proj.root / "letter.md"
-    deliver = [xlsx, enl_zip, ris, mpath]
+    prisma = out / "PRISMA_2020_flow.svg"
+    prisma.write_text(prisma_svg(ctx), encoding="utf-8")
+    asr = out / f"{stem}_asreview.csv"
+    write_asreview_csv(asr, unique, ctx.get("known_uids", set()))
+    deliver = [xlsx, enl_zip, ris, mpath, prisma, asr]
     if letter_md.exists():
         docx = out / f"{stem}_reply_letter.docx"
         md_to_docx(letter_md.read_text(encoding="utf-8"), docx)
         shutil.copyfile(letter_md, out / f"{stem}_reply_letter.md")
         deliver = [docx, out / f"{stem}_reply_letter.md"] + deliver
     stats = {k: ctx[k] for k in ("db_order", "retrieved", "contributed", "flag_counts", "n_unique", "n_dups",
-                                 "total_retrieved", "search_date", "citation_log")}
+                                 "total_retrieved", "search_date", "citation_log", "overlap")}
+    if ctx.get("validation"):
+        stats["validation"] = {"found": len(ctx["known_uids"]), "known": len(ctx["validation"])}
+    if prev_recs:
+        stats["previously_screened"] = len(ctx["previous_uids"])
     stats["methods_en"] = methods
     (out / "stats.json").write_text(json.dumps(stats, ensure_ascii=False, indent=1), encoding="utf-8")
     package = out / f"{stem}_literature_search_{date_tag}.zip"
@@ -315,7 +404,13 @@ def main(argv=None):
     p.add_argument("counts", nargs="+"); p.add_argument("--date"); p.set_defaults(f=cmd_set_counts)
     p = sp.add_parser("cite"); p.add_argument("dir"); p.add_argument("--seed", nargs="*")
     p.add_argument("--direction", choices=["both", "backward", "forward"]); p.set_defaults(f=cmd_cite)
-    p = sp.add_parser("build"); p.add_argument("dir"); p.set_defaults(f=cmd_build)
+    p = sp.add_parser("build"); p.add_argument("dir"); p.add_argument("--previous", nargs="*",
+                                                                     help="exports of a previous search (update searches)")
+    p.set_defaults(f=cmd_build)
+    p = sp.add_parser("validate"); p.add_argument("dir"); p.add_argument("--known", nargs="*")
+    p.add_argument("--known-file"); p.set_defaults(f=cmd_validate)
+    p = sp.add_parser("suggest"); p.add_argument("dir"); p.add_argument("--top", type=int, default=30)
+    p.add_argument("--from-known", action="store_true"); p.set_defaults(f=cmd_suggest)
     p = sp.add_parser("status"); p.add_argument("dir"); p.set_defaults(f=cmd_status)
     a = ap.parse_args(argv)
     a.f(a)

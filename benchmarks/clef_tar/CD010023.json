@@ -1,0 +1,28 @@
+{
+ "topic": "CD010023",
+ "title": "CT versus MRI versus bone scintigraphy for clinically suspected scaphoid fractures in patients with negative plain radiographs",
+ "written_from": "review title only (original Cochrane query not consulted)",
+ "pubmed": [
+  {
+   "q": "\"Scaphoid Bone\"[Mesh]"
+  },
+  {
+   "q": "scaphoid*[tiab] OR navicular[tiab]"
+  },
+  {
+   "q": "#1 OR #2"
+  },
+  {
+   "q": "\"Tomography, X-Ray Computed\"[Mesh] OR \"Magnetic Resonance Imaging\"[Mesh] OR \"Radionuclide Imaging\"[Mesh] OR \"Bone and Bones/diagnostic imaging\"[Mesh]"
+  },
+  {
+   "q": "\"computed tomography\"[tiab] OR CT[tiab] OR \"magnetic resonance\"[tiab] OR MRI[tiab] OR MR[tiab] OR scintigra*[tiab] OR \"bone scan\"[tiab] OR \"bone scans\"[tiab] OR \"bone scanning\"[tiab] OR radionuclide[tiab] OR imaging[tiab]"
+  },
+  {
+   "q": "#4 OR #5"
+  },
+  {
+   "q": "#3 AND #6"
+  }
+ ]
+}

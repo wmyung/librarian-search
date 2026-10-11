@@ -1,0 +1,31 @@
+{
+ "topic": "CD009185",
+ "title": "Procalcitonin, C-reactive protein, and erythrocyte sedimentation rate for the diagnosis of acute pyelonephritis in children",
+ "written_from": "review title only (original Cochrane query not consulted)",
+ "pubmed": [
+  {
+   "q": "\"Procalcitonin\"[Mesh] OR \"C-Reactive Protein\"[Mesh] OR \"Blood Sedimentation\"[Mesh]"
+  },
+  {
+   "q": "procalcitonin[tiab] OR PCT[tiab] OR \"C-reactive protein\"[tiab] OR \"C reactive protein\"[tiab] OR CRP[tiab] OR \"erythrocyte sedimentation\"[tiab] OR \"sedimentation rate\"[tiab] OR ESR[tiab]"
+  },
+  {
+   "q": "#1 OR #2"
+  },
+  {
+   "q": "\"Pyelonephritis\"[Mesh] OR \"Urinary Tract Infections\"[Mesh]"
+  },
+  {
+   "q": "pyelonephrit*[tiab] OR \"urinary tract infection\"[tiab] OR \"urinary tract infections\"[tiab] OR UTI[tiab] OR UTIs[tiab] OR \"renal scarring\"[tiab] OR \"renal scar\"[tiab] OR \"kidney infection\"[tiab] OR DMSA[tiab]"
+  },
+  {
+   "q": "#4 OR #5"
+  },
+  {
+   "q": "\"Child\"[Mesh] OR \"Infant\"[Mesh] OR \"Adolescent\"[Mesh] OR child*[tiab] OR infan*[tiab] OR pediatr*[tiab] OR paediatr*[tiab] OR neonat*[tiab] OR newborn*[tiab] OR adolescen*[tiab] OR boys[tiab] OR girls[tiab]"
+  },
+  {
+   "q": "#3 AND #6 AND #7"
+  }
+ ]
+}

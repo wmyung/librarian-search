@@ -13,8 +13,8 @@ API = "https://api.openalex.org"
 
 def _p(extra: dict | None = None) -> dict:
     p = dict(extra or {})
-    if os.environ.get("OPENALEX_EMAIL"):
-        p["mailto"] = os.environ["OPENALEX_EMAIL"]
+    if os.environ.get("OPENALEX_API_KEY"):
+        p["api_key"] = os.environ["OPENALEX_API_KEY"]
     return p
 
 

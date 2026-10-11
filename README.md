@@ -1,14 +1,13 @@
-# litsearch
+# librarian-search
 
 **Librarian-grade systematic literature search, automated. Line-by-line strategies, multi-database retrieval, deduplication, a native EndNote library, and a PRISMA-S methods paragraph, from one search request.**
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Claude Code skill](https://img.shields.io/badge/Claude%20Code-skill-d97757)](skill/SKILL.md)
-[![No API keys](https://img.shields.io/badge/API%20keys-none%20required-brightgreen)](#databases)
 [![PRISMA-S](https://img.shields.io/badge/reporting-PRISMA--S-6f42c1)](https://doi.org/10.1186/s13643-020-01542-z)
 
-When you ask a medical librarian for a literature search for a review, you get back a **reply letter**, a **search-strategy spreadsheet** (every database, every line, every hit count), and an **EndNote library** with one group per database and duplicates in the Trash. litsearch produces that same package. The search runs in minutes, and a librarian or reviewer can audit every line.
+When you ask a medical librarian for a literature search for a review, you get back a **reply letter**, a **search-strategy spreadsheet** (every database, every line, every hit count), and an **EndNote library** with one group per database and duplicates in the Trash. librarian-search produces that same package. The search runs in minutes, and a librarian or reviewer can audit every line.
 
 - **A Claude Code skill** reads the request, builds concept blocks (MeSH lookup, synonyms, brand names, spelling variants), translates the same logic into PubMed, Europe PMC, ClinicalTrials.gov, Embase, Cochrane and Web of Science syntax, and writes the reply letter.
 - **A deterministic Python CLI** runs the searches line by line, imports exports from subscription databases, deduplicates across sources, and writes the deliverables.
@@ -41,7 +40,7 @@ The `Search strategy` sheet looks like a librarian's worksheet:
 
 ## Why
 
-| | Librarian request | AI search assistants | Single-purpose tools | **litsearch** |
+| | Librarian request | AI search assistants | Single-purpose tools | **librarian-search** |
 |---|---|---|---|---|
 | Line-by-line strategy with hit counts | ✅ | ❌ | translation only | ✅ |
 | Reproducible, pasteable queries | ✅ | ❌ | ✅ | ✅ |
@@ -51,7 +50,7 @@ The `Search strategy` sheet looks like a librarian's worksheet:
 | PRISMA-S reporting text | sometimes | ❌ | ❌ | ✅ |
 | Turnaround | days to weeks | minutes | per step | minutes |
 
-litsearch doesn't replace a librarian's judgement. It gives you a librarian-structured first pass that a librarian can review quickly (PRESS), and that a journal reviewer can audit.
+librarian-search doesn't replace a librarian's judgement. It gives you a librarian-structured first pass that a librarian can review quickly (PRESS), and that a journal reviewer can audit.
 
 **Validation so far:** translated to PubMed, a librarian's Ovid MEDLINE strategy returned 192 records against the librarian's 189 (searched about six weeks earlier). Using the same Embase export, unique Embase records after deduplication were 1,200, against 1,216 from the librarian's EndNote deduplication. EndNote 21 opens the generated libraries with groups, smart groups and Trash intact.
 
@@ -60,11 +59,11 @@ litsearch doesn't replace a librarian's judgement. It gives you a librarian-stru
 ## Quick start
 
 ```bash
-git clone https://github.com/wmyung/litsearch ~/lit-search
-cd ~/lit-search && uv sync                      # Python 3.10+, installs openpyxl and python-docx
-ln -s ~/lit-search/skill ~/.claude/skills/lit-search   # optional: Claude Code skill
+git clone https://github.com/wmyung/librarian-search ~/librarian-search
+cd ~/librarian-search && uv sync               # Python 3.10+, installs openpyxl and python-docx
+ln -s ~/librarian-search/skill ~/.claude/skills/librarian-search   # optional: Claude Code skill
 
-LS="uv run --project ~/lit-search litsearch"
+LS="uv run --project ~/librarian-search librarian-search"
 $LS init projects/vitd --request "Vitamin D supplementation and fracture prevention: narrative review"
 cp examples/vitamin_d_fracture_strategy.json projects/vitd/strategy.json
 $LS mesh "cholecalciferol"                 # MeSH headings + entry terms
@@ -94,7 +93,7 @@ With the skill installed, just tell Claude Code: *"Do a literature search for my
 | `citation` | automatic (OpenAlex) | backward/forward citation searching using OpenAlex |
 | `embase`, `cochrane`, `wos`, `scopus`, `psycinfo`, `cinahl`, `ovid_medline`, `koreamed`, `kmbase`, `ictrp` | manual: search on the vendor platform through your institution, export RIS / MEDLINE / WoS plain text, then `import` | official database and platform names |
 
-No API keys are required. Set `NCBI_API_KEY` for faster PubMed requests. `OPENALEX_EMAIL` is optional.
+Citation searching requires an OpenAlex API key (`OPENALEX_API_KEY`). `NCBI_API_KEY` is optional (faster PubMed requests).
 
 Search syntax pitfalls we hit and encoded in the skill, such as Europe PMC fielded clauses leaking into full-text search without parentheses, or hyphenated acronyms being tokenised, are documented in [skill/syntax.md](skill/syntax.md).
 
@@ -110,7 +109,7 @@ Records are linked by DOI, PMID or NCT number, or by normalised title (exact, or
 
 | User says | You do |
 |---|---|
-| "Do a literature search / find prior studies on X" | Load the `lit-search` skill → `init` → write `strategy.json` → `count` → `run` |
+| "Do a literature search / find prior studies on X" | Load the `librarian-search` skill → `init` → write `strategy.json` → `count` → `run` |
 | "Here are my Embase / Cochrane / WoS exports" | `set-counts` and `import` for each source |
 | "Also check references and citing papers" | `cite` with 2–5 key trials or reviews; add `citation.filter` if off-topic |
 | "Give me the package" | `build` → fill `letter_draft.md` → `letter.md` → `build` → send the zip |
@@ -130,21 +129,21 @@ out/   <- deliverables and *_literature_search_YYYYMMDD.zip
 ## Tests
 
 ```bash
-uv run --project ~/lit-search python -m pytest ~/lit-search/tests -q
+uv run --project ~/librarian-search python -m pytest ~/librarian-search/tests -q
 ```
 
 ---
 
 ## Related projects
 
-- **[wmyung/endnote-fieldcode-converter](https://github.com/wmyung/endnote-fieldcode-converter)**: turn plain-text citations in a DOCX manuscript into EndNote field codes. A good next step after screening the litsearch library.
+- **[wmyung/endnote-fieldcode-converter](https://github.com/wmyung/endnote-fieldcode-converter)**: turn plain-text citations in a DOCX manuscript into EndNote field codes. A good next step after screening the librarian-search library.
 - **[wmyung/endnote-fieldcode-gui](https://github.com/wmyung/endnote-fieldcode-gui)**: an offline Mac app for the same conversion.
 - **[wmyung/paper-to-llm-wiki-digest](https://github.com/wmyung/paper-to-llm-wiki-digest)**: digest included papers into an LLM-ready research wiki.
 - **[wmyung/manuscript-to-editable-slides](https://github.com/wmyung/manuscript-to-editable-slides)**: turn the finished manuscript into an editable slide deck.
 
 ## Notes
 
-EndNote is a trademark of Clarivate. litsearch is not affiliated with Clarivate, NLM, EMBL-EBI, Elsevier, Wiley or OpenAlex. It writes EndNote's SQLite library format for interoperability. Respect each database's terms of use; subscription databases are searched by you, through your own access.
+EndNote is a trademark of Clarivate. librarian-search is not affiliated with Clarivate, NLM, EMBL-EBI, Elsevier, Wiley or OpenAlex. It writes EndNote's SQLite library format for interoperability. Respect each database's terms of use; subscription databases are searched by you, through your own access.
 
 ## License
 

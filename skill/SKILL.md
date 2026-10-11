@@ -1,11 +1,12 @@
 ---
-name: lit-search
+name: librarian-search
 description: Run a medical-librarian-style systematic literature search and produce a librarian's deliverables (reply letter, line-by-line search strategy workbook with hit counts, native EndNote library, RIS, PRISMA-S methods text). Trigger on requests such as "do a literature search for my review", "build a search strategy", "systematic search", "find prior studies on X", "search like a librarian", or when the user hands over a search request (text, file, or Google Docs link).
 ---
 
-# Librarian-style systematic literature search (litsearch)
+# Librarian-style systematic literature search (librarian-search)
 
-Tool: `uv run --project ~/lit-search litsearch <cmd>` (abbreviated `LS` below). Code and docs: `~/lit-search/README.md`.
+Tool: `uv run --project <repo> librarian-search <cmd>` (abbreviated `LS` below), where `<repo>` is the parent directory of this skill's base directory (the skill lives in `<repo>/skill`). Code and docs: `<repo>/README.md`.
+Citation searching (`LS cite`) requires `OPENALEX_API_KEY` in the environment.
 Read [syntax.md](syntax.md) before writing any search lines.
 
 **All outputs are in English**: strategy, letter, methods, workbook and EndNote group names. Never put the requester's name, institution, or other identifying details into any output.
@@ -20,7 +21,7 @@ Read [syntax.md](syntax.md) before writing any search lines.
 
 ### 1. Intake
 - `LS init <folder> --request <Google Docs URL | .gdoc path | file | "text">`
-  Default folder: `~/lit-search/projects/<YYYYMMDD>_<short-topic>`
+  Default folder: `<repo>/projects/<YYYYMMDD>_<short-topic>`
 - Read `request.md` and confirm in one paragraph: question/objective, review type (narrative/systematic/scoping/meta-analysis), core concepts (usually 2–3: intervention/exposure × population/condition [× outcome]), scope (efficacy, safety, ...), and any draft strategy supplied by the requester.
 - Ask only when genuinely ambiguous. Otherwise follow librarian practice: **no limits by study design or outcome**, no language or date limits, and as few concepts as possible (usually intervention AND condition). Every extra concept lowers sensitivity.
 

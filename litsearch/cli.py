@@ -1,14 +1,14 @@
 """litsearch command line.
 
-  litsearch init DIR --request (FILE | Google Docs URL | .gdoc)   new request folder + strategy.json skeleton
-  litsearch mesh TERM ...                                          look up MeSH headings and entry terms
-  litsearch count DIR [--db pubmed]                                per-line hit counts for automatic sources (iterate)
-  litsearch run DIR [--db pubmed]                                  counts + retrieve records for the final line
-  litsearch import DIR --db embase FILE [FILE ...]                 import manual-database exports (RIS/MEDLINE/WoS)
-  litsearch set-counts DIR --db embase 15862 4398 ...              record per-line counts for a manual database
-  litsearch cite DIR [--seed DOI|PMID ...] [--direction both]      OpenAlex citation searching
-  litsearch build DIR                                              deduplicate + deliverables (xlsx, EndNote, RIS, methods, letter draft)
-  litsearch status DIR                                             progress summary
+  librarian-search init DIR --request (FILE | Google Docs URL | .gdoc)   new request folder + strategy.json skeleton
+  librarian-search mesh TERM ...                                          look up MeSH headings and entry terms
+  librarian-search count DIR [--db pubmed]                                per-line hit counts for automatic sources (iterate)
+  librarian-search run DIR [--db pubmed]                                  counts + retrieve records for the final line
+  librarian-search import DIR --db embase FILE [FILE ...]                 import manual-database exports (RIS/MEDLINE/WoS)
+  librarian-search set-counts DIR --db embase 15862 4398 ...              record per-line counts for a manual database
+  librarian-search cite DIR [--seed DOI|PMID ...] [--direction both]      OpenAlex citation searching
+  librarian-search build DIR                                              deduplicate + deliverables (xlsx, EndNote, RIS, methods, letter draft)
+  librarian-search status DIR                                             progress summary
 """
 from __future__ import annotations
 
@@ -302,7 +302,7 @@ def cmd_status(a):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(prog="litsearch", description="Medical-librarian-style systematic literature search")
+    ap = argparse.ArgumentParser(prog="librarian-search", description="Medical-librarian-style systematic literature search")
     sp = ap.add_subparsers(dest="cmd", required=True)
     p = sp.add_parser("init"); p.add_argument("dir"); p.add_argument("--request"); p.set_defaults(f=cmd_init)
     p = sp.add_parser("mesh"); p.add_argument("terms", nargs="+"); p.set_defaults(f=cmd_mesh)

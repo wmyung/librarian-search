@@ -1,5 +1,5 @@
 [project]
-name = "litsearch"
+name = "librarian-search"
 version = "0.1.0"
 description = "Medical-librarian-style systematic literature search: line-by-line strategies, multi-database retrieval, deduplication, native EndNote library, PRISMA-S methods text and reply letter"
 readme = "README.md"
@@ -12,9 +12,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/wmyung/litsearch"
+Homepage = "https://github.com/wmyung/librarian-search"
 
 [project.scripts]
+librarian-search = "litsearch.cli:main"
 litsearch = "litsearch.cli:main"
 
 [build-system]

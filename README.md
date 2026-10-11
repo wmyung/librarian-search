@@ -1,20 +1,64 @@
 # librarian-search
 
-**Librarian-grade systematic literature search, automated. Line-by-line strategies, multi-database retrieval, deduplication, a native EndNote library, and a PRISMA-S methods paragraph, from one search request.**
+**A medical librarian's literature search, as code.** One search request in; a librarian's reply letter, a line-by-line search-strategy workbook with hit counts, a native EndNote library, and PRISMA-S methods text out. Benchmarked on 26 Cochrane reviews: **95% recall**.
 
+[![Release](https://img.shields.io/github/v/release/wmyung/librarian-search)](https://github.com/wmyung/librarian-search/releases)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Claude Code skill](https://img.shields.io/badge/Claude%20Code-skill-d97757)](skill/SKILL.md)
-[![PRISMA-S](https://img.shields.io/badge/reporting-PRISMA--S-6f42c1)](https://doi.org/10.1186/s13643-020-01542-z)
 [![Search recall](https://img.shields.io/badge/recall%20on%2026%20Cochrane%20reviews-95%25-success)](#benchmarks)
 [![Dedup](https://img.shields.io/badge/dedup%20(ASySD%20set)-588%20vs%20584%20true-success)](#benchmarks)
+[![PRISMA-S](https://img.shields.io/badge/reporting-PRISMA--S-6f42c1)](https://doi.org/10.1186/s13643-020-01542-z)
 
-When you ask a medical librarian for a literature search for a review, you get back a **reply letter**, a **search-strategy spreadsheet** (every database, every line, every hit count), and an **EndNote library** with one group per database and duplicates in the Trash. librarian-search produces that same package. The search runs in minutes, and a librarian or reviewer can audit every line.
+Ask a medical library for a literature search for your review and you get three things back: a **reply letter**, a **search-strategy spreadsheet** (every database, every line, every hit count), and an **EndNote library** with one group per database and duplicates in the Trash. librarian-search produces that same package in minutes, and every line can be audited by a librarian, a co-author, or a journal reviewer.
 
-- **A Claude Code skill** reads the request, builds concept blocks (MeSH lookup, synonyms, brand names, spelling variants), translates the same logic into PubMed, Europe PMC, ClinicalTrials.gov, Embase, Cochrane and Web of Science syntax, and writes the reply letter.
-- **A deterministic Python CLI** runs the searches line by line, imports exports from subscription databases, deduplicates across sources, and writes the deliverables.
+- **A Claude Code skill** reads the request, builds concept blocks (MeSH lookup, synonyms, brand names, spelling variants), translates the same logic into PubMed, Europe PMC, ClinicalTrials.gov, Embase, Cochrane and Web of Science syntax, checks sensitivity against known studies, and writes the reply letter.
+- **A deterministic Python CLI** runs the searches line by line, imports exports from subscription databases, deduplicates across sources, and writes every deliverable.
 
-No vector search, no black-box "AI search". Every record comes from a reproducible query you can paste into the database yourself.
+No vector search and no black-box "AI search": every record comes from a Boolean query you can paste into the database yourself.
+
+---
+
+## At a glance
+
+| | |
+|---|---|
+| **Search recall** | 89.3% of included studies with the PubMed strategy alone, **95.2% with citation searching** (766/805, 26 Cochrane reviews, strategies written blind from the title) |
+| **Deduplication** | 588 records kept vs 584 true unique studies on the ASySD gold-standard set (ASySD: 586, EndNote default: 949) |
+| **Against a real librarian** | 192 vs 189 records (PubMed vs the librarian's Ovid MEDLINE); 1,204 vs 1,216 unique Embase records after dedup |
+| **Retrieval** | Every record, not a top-50: PubMed, Europe PMC and ClinicalTrials.gov automatically; Embase, Cochrane, WoS, Scopus, PsycInfo and CINAHL via RIS / MEDLINE / WoS exports |
+| **Output** | Reply letter (.docx), strategy workbook (.xlsx), native EndNote 20/21 library, RIS, PRISMA-S methods paragraph, PRISMA 2020 flow diagram, ASReview import file |
+| **Setup** | `uv tool install` from GitHub, Python 3.10+, no paid API. Citation searching requires an OpenAlex API key |
+
+---
+
+## Why librarian-search?
+
+What only it does, among the tools we surveyed:
+
+1. **The librarian's deliverable package.** A line-by-line strategy with hit counts for every database, a native EndNote library with database groups, smart groups and Trash, a PRISMA-S methods paragraph and a reply letter, together. Other tools stop at a list of records or a report.
+2. **Subscription databases are first-class.** Most automated tools cannot touch Embase, Cochrane or Web of Science. librarian-search writes the paste-ready lines, then imports the RIS export from your institutional access. That is the realistic route to a search that journals accept.
+3. **Complete retrieval.** Multi-source search tools commonly cap results at 50 per call or per source. A systematic search needs every record: librarian-search retrieves all of them (891 PubMed records in one test, 9,540 in another).
+4. **Reproducible and reported.** Every line can be pasted back into the database to reproduce its count, and the PRISMA-S items are filled in for you.
+5. **Validated, not just plausible.** Search recall and deduplication are benchmarked against public gold standards, and the benchmarks ship with the code.
+
+---
+
+## Comparison with alternatives
+
+| | **librarian-search** | TrialMind | K-Dense literature-review skill | LitSearch II (MCP) | SR-Accelerator | CiteSource + ASySD | ASReview |
+|---|---|---|---|---|---|---|---|
+| **Type** | Skill + CLI | Research pipeline | Agent skill | MCP server | Web tools | R packages | Screening app |
+| **Retrieves all records** | ✅ PubMed, Europe PMC, CT.gov | ✅ PubMed | partial (web + databases) | ❌ 50 per call | ❌ | ❌ | ❌ |
+| **Embase / Cochrane / WoS imports** | ✅ | ❌ | ❌ | ❌ | ✅ (dedup) | ✅ | ✅ (import) |
+| **Line-by-line strategy with hit counts** | ✅ | ❌ | ❌ | ❌ | translation only | ❌ | ❌ |
+| **Cross-database dedup, benchmarked** | ✅ | ❌ | ❌ | DOI/title merge | ✅ | ✅ | ❌ |
+| **Native EndNote library** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **PRISMA-S text + reply letter** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Screening / data extraction** | ❌ (hands off to ASReview, Covidence, Rayyan) | ✅ | guidance | ❌ | ❌ | ❌ | ✅ screening |
+| **Published recall benchmark** | ✅ 26 Cochrane reviews | ✅ | ❌ | ❌ | — | dedup only | screening |
+
+End-to-end LLM review pipelines such as TrialMind, otto-SR (not released) and AgentSLR go further downstream, into screening and extraction. librarian-search does the step before them the way librarians and journals expect, and its output feeds straight into a screening tool.
 
 ---
 
@@ -22,12 +66,12 @@ No vector search, no black-box "AI search". Every record comes from a reproducib
 
 | File | Contents |
 |---|---|
-| `*_reply_letter.docx` / `.md` | Search strategy rationale, hits per source and after deduplication, screening advice, citation searching, attachment guide |
-| `*_search_strategy_YYYYMMDD.xlsx` | `Search strategy` (DB × line no. × query × hits, plus a retrieved / after-dedup summary table), `Records` (screening sheet with study-type and retraction flags, abstract, include/exclude columns), `Source overlap` (what each database found, alone and in common), `Validation` (which known relevant studies were found, and which concept line lost the rest), `Duplicates` (what was removed and why), `PRISMA-S` |
-| `*_EndNote.zip` | Native EndNote 20/21 library (`.enl` + `.Data`): groups `"<DB> <n>"`, smart groups (random\*, systematic review, placebo, meta-analysis, case report/series, review, guideline), duplicates in the Trash with the reason in Research Notes |
+| `*_reply_letter.docx` / `.md` | Search strategy rationale, hits per source and after deduplication, validation-set result, screening advice, citation searching, attachment guide |
+| `*_search_strategy_YYYYMMDD.xlsx` | `Search strategy` (DB × line no. × query × hits, plus a retrieved / after-dedup summary), `Records` (screening sheet with study-type and retraction flags, abstract, include/exclude columns), `Source overlap`, `Validation`, `Duplicates`, `PRISMA-S` |
+| `*_EndNote.zip` | Native EndNote 20/21 library (`.enl` + `.Data`): groups `"<DB> <n>"`, smart groups (random\*, systematic review, placebo, meta-analysis, case report/series, review, guideline), retracted records, validation-set and update-search groups, duplicates in the Trash with the reason in Research Notes |
 | `*_N.ris` | Deduplicated records for Zotero, Covidence or Rayyan |
 | `methods_PRISMA-S.md` | A ready-to-edit Methods paragraph plus all 16 PRISMA-S items filled in |
-| `PRISMA_2020_flow.svg` | PRISMA 2020 flow diagram with the identification stage completed (records per source, duplicates removed, records to screen) |
+| `PRISMA_2020_flow.svg` | PRISMA 2020 flow diagram with the identification stage completed |
 | `*_asreview.csv` | Import file for [ASReview](https://github.com/asreview/asreview) active-learning screening, with validation-set studies pre-labelled as relevant |
 
 The `Search strategy` sheet looks like a librarian's worksheet:
@@ -42,24 +86,71 @@ The `Search strategy` sheet looks like a librarian's worksheet:
 
 ---
 
-## Why
+## How it works
 
-| | Librarian request | AI search assistants | Single-purpose tools | **librarian-search** |
-|---|---|---|---|---|
-| Line-by-line strategy with hit counts | ✅ | ❌ | translation only | ✅ |
-| Reproducible, pasteable queries | ✅ | ❌ | ✅ | ✅ |
-| Multi-database retrieval | ✅ | partial | ❌ | ✅ automatic + import |
-| Cross-database deduplication with audit trail | ✅ (EndNote) | ❌ | dedup only | ✅ |
-| Native EndNote library with groups | ✅ | ❌ | ❌ | ✅ |
-| PRISMA-S reporting text | sometimes | ❌ | ❌ | ✅ |
-| Validation-set recall check with diagnosis | sometimes | ❌ | ❌ | ✅ (which concept lost each missed study) |
-| Update searches (new vs previously screened) | ✅ | ❌ | dedup tools | ✅ |
-| Published benchmark | n/a | rarely | some | ✅ [below](#benchmarks) |
-| Turnaround | days to weeks | minutes | per step | minutes |
+```
+search request (text, file, Google Docs link)
+   │  skill: concepts, MeSH and synonyms, database-specific syntax
+   ▼
+strategy.json  ── count ──▶ per-line hit counts (iterate until plausible)
+   │
+   ├─ run ────▶ PubMed, Europe PMC, ClinicalTrials.gov (every record)
+   ├─ import ─▶ Embase, Cochrane, WoS, ... exports from your institution
+   ├─ cite ───▶ OpenAlex reference lists and citing articles of key reviews
+   ├─ validate ▶ known relevant studies found? which concept lost the rest?
+   ▼
+build ─▶ dedup (priority order) ─▶ workbook, EndNote, RIS, PRISMA-S, PRISMA 2020, ASReview, letter draft
+```
 
-librarian-search doesn't replace a librarian's judgement. It gives you a librarian-structured first pass that a librarian can review quickly (PRESS), and that a journal reviewer can audit.
+---
 
-Compared with end-to-end LLM review pipelines (TrialMind, otto-SR, AgentSLR), librarian-search does less: it stops at a screened-ready, deduplicated record set. It does that step the way journals and librarians expect: Boolean, multi-database, reproducible, and reported to PRISMA-S. Its output feeds screening tools such as ASReview, Covidence or Rayyan.
+## Quick start
+
+```bash
+# install the CLI
+uv tool install git+https://github.com/wmyung/librarian-search
+# or work from a clone (and enable the Claude Code skill)
+git clone https://github.com/wmyung/librarian-search ~/librarian-search
+cd ~/librarian-search && uv sync
+ln -s ~/librarian-search/skill ~/.claude/skills/librarian-search
+
+LS="librarian-search"          # or: uv run --project ~/librarian-search librarian-search
+$LS init projects/vitd --request "Vitamin D supplementation and fracture prevention: narrative review"
+cp examples/vitamin_d_fracture_strategy.json projects/vitd/strategy.json
+$LS mesh "cholecalciferol"                 # MeSH headings + entry terms
+$LS count projects/vitd                    # per-line hit counts (iterate on the strategy)
+$LS run projects/vitd                      # retrieve records from automatic sources
+$LS validate projects/vitd --known 12345678 10.xxxx/known-study   # recall of known relevant studies + diagnosis
+$LS suggest projects/vitd --from-known     # frequent MeSH/keywords the strategy does not cover yet
+
+# Subscription databases: run the lines from the workbook via your institution, export RIS, then
+$LS set-counts projects/vitd --db embase 98765 54321 … --date 2026-10-01
+$LS import projects/vitd --db embase embase_export.ris --date 2026-10-01
+
+export OPENALEX_API_KEY=...                # required for citation searching
+$LS cite projects/vitd --seed 10.xxxx/your-key-review 12345678   # backward + forward citation searching
+$LS build projects/vitd                    # dedup + deliverables + letter_draft.md
+# edit letter_draft.md -> letter.md, run build again -> final zip with the reply letter .docx
+$LS build projects/vitd --previous last_year.ris   # update search: mark records screened last time
+```
+
+With the skill installed, just tell Claude Code: *"Do a literature search for my narrative review on vitamin D and fracture prevention."*
+
+---
+
+## Databases
+
+| id | Mode | How it is reported |
+|---|---|---|
+| `pubmed` | automatic (NCBI E-utilities) | MEDLINE via PubMed |
+| `europepmc` | automatic (REST API) | Europe PMC |
+| `ctgov` | automatic (API v2) | ClinicalTrials.gov (trial registry) |
+| `citation` | automatic (OpenAlex) | backward/forward citation searching using OpenAlex |
+| `embase`, `cochrane`, `wos`, `scopus`, `psycinfo`, `cinahl`, `ovid_medline`, `koreamed`, `kmbase`, `ictrp` | manual: search on the vendor platform through your institution, export RIS / MEDLINE / WoS plain text, then `import` | official database and platform names |
+
+Citation searching requires an OpenAlex API key (`OPENALEX_API_KEY`). `NCBI_API_KEY` is optional (faster PubMed requests).
+
+Search syntax pitfalls we hit and encoded in the skill, such as Europe PMC fielded clauses leaking into full-text search without parentheses, or hyphenated acronyms being tokenised, are documented in [skill/syntax.md](skill/syntax.md).
 
 ---
 
@@ -132,88 +223,24 @@ The first version of our deduplication merged 54 distinct conference abstracts, 
 
 Translated to PubMed, a medical librarian's Ovid MEDLINE strategy returned 192 records against the librarian's 189 (searched about six weeks earlier). With the same Embase export, deduplication left 1,204 unique Embase records against 1,216 from the librarian's EndNote deduplication. EndNote 21 opens the generated libraries with groups, smart groups and Trash intact.
 
----
-
-## Quick start
-
-```bash
-git clone https://github.com/wmyung/librarian-search ~/librarian-search
-cd ~/librarian-search && uv sync               # Python 3.10+, installs openpyxl and python-docx
-ln -s ~/librarian-search/skill ~/.claude/skills/librarian-search   # optional: Claude Code skill
-
-LS="uv run --project ~/librarian-search librarian-search"
-$LS init projects/vitd --request "Vitamin D supplementation and fracture prevention: narrative review"
-cp examples/vitamin_d_fracture_strategy.json projects/vitd/strategy.json
-$LS mesh "cholecalciferol"                 # MeSH headings + entry terms
-$LS count projects/vitd                    # per-line hit counts (iterate on the strategy)
-$LS run projects/vitd                      # retrieve records from automatic sources
-$LS validate projects/vitd --known 12345678 10.xxxx/known-study   # recall of known relevant studies + diagnosis
-$LS suggest projects/vitd --from-known     # frequent MeSH/keywords the strategy does not cover yet
-
-# Subscription databases: run the lines from the workbook via your institution, export RIS, then
-$LS set-counts projects/vitd --db embase 98765 54321 … --date 2026-10-01
-$LS import projects/vitd --db embase embase_export.ris --date 2026-10-01
-
-$LS cite projects/vitd --seed 10.xxxx/your-key-review 12345678   # backward + forward citation searching
-$LS build projects/vitd                    # dedup + deliverables + letter_draft.md
-# edit letter_draft.md -> letter.md, run build again -> final zip with the reply letter .docx
-$LS build projects/vitd --previous last_year.ris   # update search: mark records screened last time
-```
-
-With the skill installed, just tell Claude Code: *"Do a literature search for my narrative review on vitamin D and fracture prevention."*
 
 ---
 
-## Databases
+## What benchmarking fixed
 
-| id | Mode | How it is reported |
-|---|---|---|
-| `pubmed` | automatic (NCBI E-utilities) | MEDLINE via PubMed |
-| `europepmc` | automatic (REST API) | Europe PMC |
-| `ctgov` | automatic (API v2) | ClinicalTrials.gov (trial registry) |
-| `citation` | automatic (OpenAlex) | backward/forward citation searching using OpenAlex |
-| `embase`, `cochrane`, `wos`, `scopus`, `psycinfo`, `cinahl`, `ovid_medline`, `koreamed`, `kmbase`, `ictrp` | manual: search on the vendor platform through your institution, export RIS / MEDLINE / WoS plain text, then `import` | official database and platform names |
+Benchmarks are only useful if they change the code. These did:
 
-Citation searching requires an OpenAlex API key (`OPENALEX_API_KEY`). `NCBI_API_KEY` is optional (faster PubMed requests).
-
-Search syntax pitfalls we hit and encoded in the skill, such as Europe PMC fielded clauses leaking into full-text search without parentheses, or hyphenated acronyms being tokenised, are documented in [skill/syntax.md](skill/syntax.md).
+- **Over-merging deduplication.** The first version merged 54 distinct conference abstracts on the ASySD set, because a whole conference supplement can carry a single DOI. DOI matches now also require compatible titles and first pages (588 kept vs 584 true, previously 533).
+- **Diagnostic accuracy searches.** Every study missed in the procalcitonin/CRP review failed the index-test concept, because abstracts often omit the index test. The skill now ORs reference-standard terms into the index-test concept and warns against population concepts that abstracts may not state.
+- **Adverse-event searches.** Most misses in the methylphenidate review were trial reports that say "medication management" without naming the drug. The skill now adds drug-class terms and trial acronyms.
+- **Validation sets are mandatory.** `validate` reports, for every missed known study, whether it is in PubMed and which concept line lost it, so a gap is fixed before the search is delivered.
+- **Robustness.** OpenAlex lookups fall back to the DOI recorded in PubMed when a PMID is not linked, and API responses with control characters no longer break parsing.
 
 ---
 
 ## Deduplication
 
 Records are linked by PMID or NCT number; by DOI when titles and first pages are also compatible (conference supplements often share one DOI); or by normalised title (exact, or a ≥40-character prefix match for titles with appended translations) + publication year ±1 + compatible first author + no conflicting first page. The record from the highest-priority source is kept (default MEDLINE > Embase > Cochrane > WoS > …, configurable). Empty fields such as abstract or DOI are filled in from its duplicates. Every removed record stays in the EndNote Trash and in the `Duplicates` sheet, with its match basis.
-
----
-
-## For AI agents
-
-| User says | You do |
-|---|---|
-| "Do a literature search / find prior studies on X" | Load the `librarian-search` skill → `init` → write `strategy.json` → `count` → `run` |
-| "Here are my Embase / Cochrane / WoS exports" | `set-counts` and `import` for each source |
-| "These papers must be found" | `validate --known …`; fix the concept line it reports, rerun, validate again |
-| "Update last year's search" | `build --previous <old export>` |
-| "Also check references and citing papers" | `cite` with 2–5 key trials or reviews; add `citation.filter` if off-topic |
-| "Give me the package" | `build` → fill `letter_draft.md` → `letter.md` → `build` → send the zip |
-
-Rules the skill enforces: report only real counts and dates, never limit by study design for narrative reviews, keep every record (flags are screening aids), and put no names or institutions in outputs.
-
----
-
-## Project layout (one search request)
-
-```
-request.md  strategy.json  letter_draft.md  letter.md
-records/<db>.jsonl   runs/counts.json   runs/citation_log.json
-out/   <- deliverables and *_literature_search_YYYYMMDD.zip
-```
-
-## Tests
-
-```bash
-uv run --project ~/librarian-search python -m pytest ~/librarian-search/tests -q
-```
 
 ---
 
@@ -231,6 +258,46 @@ librarian-search adapts good ideas from established evidence-synthesis tools:
 | Retraction flags | Citation verification in [LitSearch II](https://github.com/seun-john/litsearch-ii) |
 | Screening handoff | [ASReview](https://github.com/asreview/asreview) |
 | Search-recall benchmark topics | [CLEF eHealth TAR](https://github.com/CLEF-TAR/tar) |
+
+---
+
+## Limitations
+
+- **Search and retrieval only.** Screening and data extraction are out of scope; hand the RIS or ASReview file to a screening tool.
+- **Benchmarks cover PubMed plus citation searching.** Embase, Cochrane and Web of Science add records in real searches but are not part of the automated benchmark, because they require institutional access.
+- **Strategy quality depends on the model.** The skill writes the strategy, so quality can vary by topic. That is why validation-set checks are part of the workflow, and why a librarian's PRESS review is still recommended for systematic reviews.
+- **Citation searching requires an OpenAlex API key.**
+
+---
+
+## For AI agents
+
+| User says | You do |
+|---|---|
+| "Do a literature search / find prior studies on X" | Load the `librarian-search` skill → `init` → write `strategy.json` → `count` → `run` |
+| "These papers must be found" | `validate --known …`; fix the concept line it reports, rerun, validate again |
+| "Here are my Embase / Cochrane / WoS exports" | `set-counts` and `import` for each source |
+| "Also check references and citing papers" | `cite` with 2–5 key trials or reviews; add `citation.filter` if off-topic |
+| "Update last year's search" | `build --previous <old export>` |
+| "Give me the package" | `build` → fill `letter_draft.md` → `letter.md` → `build` → send the zip |
+
+Rules the skill enforces: report only real counts and dates, never limit by study design for narrative reviews, always run a validation set, keep every record (flags are screening aids), and put no names or institutions in outputs.
+
+---
+
+## Project layout (one search request)
+
+```
+request.md  strategy.json  letter_draft.md  letter.md
+records/<db>.jsonl   runs/counts.json   runs/validation.json   runs/citation_log.json
+out/   <- deliverables and *_literature_search_YYYYMMDD.zip
+```
+
+## Tests
+
+```bash
+uv run --project ~/librarian-search python -m pytest ~/librarian-search/tests -q
+```
 
 ---
 

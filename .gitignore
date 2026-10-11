@@ -1,6 +1,7 @@
+*.pyc
+.pytest_cache/
 .venv/
 __pycache__/
-*.pyc
-projects/
 _verify/
-.pytest_cache/
+dist/
+projects/

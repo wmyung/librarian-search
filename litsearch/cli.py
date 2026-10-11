@@ -1,0 +1,325 @@
+"""litsearch command line.
+
+  litsearch init DIR --request (FILE | Google Docs URL | .gdoc)   new request folder + strategy.json skeleton
+  litsearch mesh TERM ...                                          look up MeSH headings and entry terms
+  litsearch count DIR [--db pubmed]                                per-line hit counts for automatic sources (iterate)
+  litsearch run DIR [--db pubmed]                                  counts + retrieve records for the final line
+  litsearch import DIR --db embase FILE [FILE ...]                 import manual-database exports (RIS/MEDLINE/WoS)
+  litsearch set-counts DIR --db embase 15862 4398 ...              record per-line counts for a manual database
+  litsearch cite DIR [--seed DOI|PMID ...] [--direction both]      OpenAlex citation searching
+  litsearch build DIR                                              deduplicate + deliverables (xlsx, EndNote, RIS, methods, letter draft)
+  litsearch status DIR                                             progress summary
+"""
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import json
+import re
+import shutil
+import sys
+import zipfile
+from collections import Counter
+from pathlib import Path
+
+from . import net
+from .classify import flags as compute_flags
+from .dedup import deduplicate
+from .endnote import write_library
+from .excel import build_workbook
+from .parsers import parse_file
+from .project import DEFAULT_PRIORITY, SKELETON, Project, db_info, expand_line, final_index
+from .records import load_jsonl, save_jsonl
+from .report import letter_draft, md_to_docx, methods_en, prisma_s, write_ris
+from .sources import ctgov, europepmc, openalex, pubmed
+
+AUTO = {"pubmed": pubmed, "europepmc": europepmc, "ctgov": ctgov}
+
+
+def today() -> str:
+    return dt.date.today().isoformat()
+
+
+def _say(msg: str) -> None:
+    print(msg, file=sys.stderr)
+
+
+# ------------------------------------------------------------------ init
+def read_request(src: str) -> str:
+    p = Path(src).expanduser()
+    doc_id = None
+    if p.exists() and p.suffix == ".gdoc":
+        doc_id = json.loads(p.read_text())["doc_id"]
+    elif p.exists():
+        if p.suffix.lower() == ".docx":
+            from docx import Document
+            return "\n".join(par.text for par in Document(p).paragraphs)
+        return p.read_text(encoding="utf-8")
+    else:
+        m = re.search(r"/document/d/([A-Za-z0-9_-]+)", src)
+        if m:
+            doc_id = m.group(1)
+    if doc_id:
+        try:
+            return net.request(f"https://docs.google.com/document/d/{doc_id}/export", {"format": "txt"}).decode("utf-8-sig")
+        except RuntimeError as e:
+            raise SystemExit(f"Could not read the Google Doc (check sharing, or save the text to a file): {e}")
+    return src  # treat as literal request text
+
+
+def cmd_init(a):
+    root = Path(a.dir).expanduser()
+    root.mkdir(parents=True, exist_ok=True)
+    proj = Project(root)
+    if a.request:
+        (root / "request.md").write_text(read_request(a.request).strip() + "\n", encoding="utf-8")
+        _say(f"Request saved: {root / 'request.md'}")
+    if not proj.strategy_path.exists():
+        proj.save(json.loads(json.dumps(SKELETON)))
+        _say(f"strategy.json skeleton created: {proj.strategy_path}")
+    print(root)
+
+
+def cmd_mesh(a):
+    for term in a.terms:
+        res = pubmed.mesh_lookup(term)
+        print(json.dumps({"query": term, "results": res}, ensure_ascii=False, indent=1))
+
+
+# ------------------------------------------------------------------ count / run
+def _auto_entries(strategy, only):
+    for e in strategy.get("databases", []):
+        if e["id"] in AUTO and (not only or e["id"] in only) and e.get("lines") and any(l.get("q") for l in e["lines"]):
+            yield e
+
+
+def _count_entry(e) -> list[dict]:
+    mod = AUTO[e["id"]]
+    out = []
+    for i, ln in enumerate(e["lines"]):
+        q = expand_line(e["lines"], i)
+        n, trans = mod.count(q)
+        out.append({"line": i + 1, "q": ln["q"], "expanded": q, "count": n, "translation": trans})
+        _say(f"  {db_info(e['id'])['short']} #{i + 1}: {n:>8,}  {str(ln['q'])[:90]}")
+    return out
+
+
+def cmd_count(a, fetch=False):
+    proj = Project(Path(a.dir).expanduser())
+    st = proj.load()
+    counts_path = proj.runs_dir / "counts.json"
+    counts = json.loads(counts_path.read_text()) if counts_path.exists() else {}
+    for e in _auto_entries(st, a.db):
+        db = e["id"]
+        _say(f"[{db_info(db)['name']}]")
+        res = _count_entry(e)
+        counts[db] = {"date": today(), "lines": res}
+        for ln, r in zip(e["lines"], res):
+            ln["results"] = r["count"]
+        if fetch:
+            fi = final_index(e)
+            q = expand_line(e["lines"], fi)
+            recs = AUTO[db].fetch(q)
+            save_jsonl(proj.records_dir / f"{db}.jsonl", recs)
+            e["search_date"] = today()
+            _say(f"  -> retrieved {len(recs):,} records (final line #{fi + 1}: {res[fi]['count']:,})")
+    proj.runs_dir.mkdir(parents=True, exist_ok=True)
+    counts_path.write_text(json.dumps(counts, ensure_ascii=False, indent=1), encoding="utf-8")
+    if fetch:
+        st["search_date"] = today()
+    proj.save(st)
+
+
+def cmd_run(a):
+    cmd_count(a, fetch=True)
+
+
+# ------------------------------------------------------------------ import / set-counts
+def cmd_import(a):
+    proj = Project(Path(a.dir).expanduser())
+    st = proj.load()
+    recs = []
+    for f in a.files:
+        got = parse_file(Path(f).expanduser(), a.db)
+        _say(f"  {f}: {len(got):,} records")
+        recs.extend(got)
+    dest = proj.records_dir / f"{a.db}.jsonl"
+    if a.append:
+        recs = load_jsonl(dest) + recs
+    save_jsonl(dest, recs)
+    e = proj.db_entry(st, a.db)
+    e["search_date"] = a.date or e.get("search_date") or today()
+    e["imported_files"] = sorted(set(e.get("imported_files", []) + [Path(f).name for f in a.files]))
+    proj.save(st)
+    fi = final_index(e) if e.get("lines") else None
+    expected = e["lines"][fi].get("results") if fi is not None and e["lines"] else None
+    _say(f"[{db_info(a.db)['name']}] imported {len(recs):,} records" + (f" (final search line: {expected:,})" if expected else ""))
+    if expected and abs(expected - len(recs)) > 0:
+        _say("  ! Imported count differs from the final search count. Check for incomplete exports (e.g., per-export limits).")
+
+
+def cmd_set_counts(a):
+    proj = Project(Path(a.dir).expanduser())
+    st = proj.load()
+    e = proj.db_entry(st, a.db)
+    if len(a.counts) != len(e.get("lines", [])):
+        raise SystemExit(f"{a.db}: {len(e.get('lines', []))} search lines but {len(a.counts)} counts given")
+    for ln, n in zip(e["lines"], a.counts):
+        ln["results"] = int(str(n).replace(",", ""))
+    if a.date:
+        e["search_date"] = a.date
+    proj.save(st)
+    _say("Counts recorded.")
+
+
+# ------------------------------------------------------------------ cite
+def cmd_cite(a):
+    proj = Project(Path(a.dir).expanduser())
+    st = proj.load()
+    cfg = st.setdefault("citation", {})
+    seeds = a.seed or cfg.get("seeds", [])
+    if not seeds:
+        raise SystemExit("Give seed articles (DOI/PMID) with --seed or in strategy.json citation.seeds")
+    cfg["seeds"] = seeds
+    direction = a.direction or cfg.get("direction", "both")
+    recs, log = openalex.citation_search(seeds, direction)
+    if cfg.get("filter"):
+        rx = re.compile(cfg["filter"], re.I)
+        before = len(recs)
+        recs = [r for r in recs if rx.search(" ".join([r["title"], r["abstract"], " ".join(r["keywords"])]))]
+        _say(f"  topic filter '{cfg['filter']}': {before} -> {len(recs)}")
+        cfg["filter_applied"] = {"before": before, "after": len(recs)}
+    save_jsonl(proj.records_dir / "citation.jsonl", recs)
+    (proj.runs_dir).mkdir(parents=True, exist_ok=True)
+    (proj.runs_dir / "citation_log.json").write_text(json.dumps({"date": today(), "seeds": log}, ensure_ascii=False, indent=1))
+    cfg["date"] = today()
+    proj.save(st)
+    _say(f"Saved {len(recs):,} citation records (deduplicated against database results at build)")
+
+
+# ------------------------------------------------------------------ build
+def _stem(st) -> str:
+    s = st.get("file_stem") or st.get("title") or "literature_search"
+    return re.sub(r'[\\/:*?"<>|]+', "", s).strip()[:60]
+
+
+def cmd_build(a):
+    proj = Project(Path(a.dir).expanduser())
+    st = proj.load()
+    priority = st.get("priority") or DEFAULT_PRIORITY
+    files = {p.stem: p for p in proj.records_dir.glob("*.jsonl")} if proj.records_dir.exists() else {}
+    if not files:
+        raise SystemExit("records/ is empty. Run run / import / cite first")
+    db_order = [d for d in priority if d in files] + sorted(d for d in files if d not in priority)
+    allrecs, retrieved = [], {}
+    for d in db_order:
+        rs = load_jsonl(files[d])
+        retrieved[d] = len(rs)
+        allrecs.extend(rs)
+    unique, dups = deduplicate(allrecs, db_order)
+    contributed = Counter(r["db"] for r in unique)
+    fl = {r["uid"]: compute_flags(r) for r in unique}
+    flag_counts = Counter(k for f in fl.values() for k, v in f.items() if v)
+
+    line_counts, fidx = {}, {}
+    for e in st.get("databases", []):
+        if e.get("lines"):
+            fidx[e["id"]] = final_index(e)
+            line_counts[e["id"]] = {i: ln.get("results") for i, ln in enumerate(e["lines"]) if ln.get("results") is not None}
+    cit_path = proj.runs_dir / "citation_log.json"
+    cit = json.loads(cit_path.read_text()) if cit_path.exists() and "citation" in files else {}
+    ctx = {
+        "db_order": db_order, "retrieved": retrieved, "contributed": dict(contributed),
+        "unique": unique, "dups": dups, "flags": fl, "flag_counts": dict(flag_counts),
+        "n_unique": len(unique), "n_dups": len(dups), "total_retrieved": len(allrecs),
+        "search_date": st.get("search_date") or today(), "line_counts": line_counts, "final_index": fidx,
+        "citation_log": cit.get("seeds", []), "citation_date": cit.get("date", ""),
+    }
+    ctx["prisma_s"] = prisma_s(st, ctx)
+
+    out = proj.out_dir
+    if out.exists():
+        shutil.rmtree(out)
+    out.mkdir(parents=True)
+    stem = _stem(st)
+    date_tag = ctx["search_date"].replace("-", "")
+    xlsx = build_workbook(out / f"{stem}_search_strategy_{date_tag}.xlsx", st, ctx)
+
+    enl_dir = out / "_endnote"
+    enl_dir.mkdir()
+    enl = write_library(enl_dir / f"{stem}.enl", unique, dups, db_order, retrieved, fl)
+    enl_zip = out / f"{stem}_EndNote.zip"
+    with zipfile.ZipFile(enl_zip, "w", zipfile.ZIP_DEFLATED) as z:
+        for p in sorted(enl_dir.rglob("*")):
+            if p.is_file():
+                z.write(p, p.relative_to(enl_dir))
+
+    ris = out / f"{stem}_{len(unique)}.ris"
+    write_ris(ris, unique)
+    methods = methods_en(st, ctx)
+    mpath = out / "methods_PRISMA-S.md"
+    mpath.write_text("# Literature search — methods text (draft)\n\n" + methods + "\n\n## PRISMA-S\n\n" +
+                     "\n".join(f"{n}. **{item}**: {desc}" for n, item, desc in ctx["prisma_s"]) + "\n", encoding="utf-8")
+    (proj.root / "letter_draft.md").write_text(letter_draft(st, ctx), encoding="utf-8")
+    letter_md = proj.root / "letter.md"
+    deliver = [xlsx, enl_zip, ris, mpath]
+    if letter_md.exists():
+        docx = out / f"{stem}_reply_letter.docx"
+        md_to_docx(letter_md.read_text(encoding="utf-8"), docx)
+        shutil.copyfile(letter_md, out / f"{stem}_reply_letter.md")
+        deliver = [docx, out / f"{stem}_reply_letter.md"] + deliver
+    stats = {k: ctx[k] for k in ("db_order", "retrieved", "contributed", "flag_counts", "n_unique", "n_dups",
+                                 "total_retrieved", "search_date", "citation_log")}
+    stats["methods_en"] = methods
+    (out / "stats.json").write_text(json.dumps(stats, ensure_ascii=False, indent=1), encoding="utf-8")
+    package = out / f"{stem}_literature_search_{date_tag}.zip"
+    with zipfile.ZipFile(package, "w", zipfile.ZIP_DEFLATED) as z:
+        for p in deliver:
+            z.write(p, p.name)
+
+    _say("\n=== Results ===")
+    for d in db_order:
+        _say(f"  {db_info(d)['name']:<34} retrieved {retrieved[d]:>6,}   unique contribution {contributed.get(d, 0):>6,}")
+    _say(f"  {'Total':<34} retrieved {len(allrecs):>6,}   unique {len(unique):>6,} (duplicates {len(dups):,})")
+    _say(f"  Screening flags: " + ", ".join(f"{k} {v}" for k, v in sorted(flag_counts.items())))
+    if not letter_md.exists():
+        _say(f"\n  Letter draft: {proj.root / 'letter_draft.md'} -> edit and save as letter.md, then run build again to produce the .docx")
+    print(package)
+
+
+def cmd_status(a):
+    proj = Project(Path(a.dir).expanduser())
+    st = proj.load()
+    for e in st.get("databases", []):
+        f = proj.records_dir / f"{e['id']}.jsonl"
+        n = sum(1 for _ in open(f)) if f.exists() else 0
+        lines = e.get("lines", [])
+        fin = lines[final_index(e)].get("results") if lines else None
+        print(f"{db_info(e['id'])['name']:<34} mode={db_info(e['id'])['mode']:<6} lines={len(lines):<3} final={fin}  records={n}  date={e.get('search_date', '')}")
+    c = proj.records_dir / "citation.jsonl"
+    if c.exists():
+        print(f"{'Citation searching':<34} records={sum(1 for _ in open(c))}")
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(prog="litsearch", description="Medical-librarian-style systematic literature search")
+    sp = ap.add_subparsers(dest="cmd", required=True)
+    p = sp.add_parser("init"); p.add_argument("dir"); p.add_argument("--request"); p.set_defaults(f=cmd_init)
+    p = sp.add_parser("mesh"); p.add_argument("terms", nargs="+"); p.set_defaults(f=cmd_mesh)
+    for name, fn in (("count", cmd_count), ("run", cmd_run)):
+        p = sp.add_parser(name); p.add_argument("dir"); p.add_argument("--db", nargs="*"); p.set_defaults(f=fn)
+    p = sp.add_parser("import"); p.add_argument("dir"); p.add_argument("--db", required=True)
+    p.add_argument("files", nargs="+"); p.add_argument("--append", action="store_true"); p.add_argument("--date")
+    p.set_defaults(f=cmd_import)
+    p = sp.add_parser("set-counts"); p.add_argument("dir"); p.add_argument("--db", required=True)
+    p.add_argument("counts", nargs="+"); p.add_argument("--date"); p.set_defaults(f=cmd_set_counts)
+    p = sp.add_parser("cite"); p.add_argument("dir"); p.add_argument("--seed", nargs="*")
+    p.add_argument("--direction", choices=["both", "backward", "forward"]); p.set_defaults(f=cmd_cite)
+    p = sp.add_parser("build"); p.add_argument("dir"); p.set_defaults(f=cmd_build)
+    p = sp.add_parser("status"); p.add_argument("dir"); p.set_defaults(f=cmd_status)
+    a = ap.parse_args(argv)
+    a.f(a)
+
+
+if __name__ == "__main__":
+    main()

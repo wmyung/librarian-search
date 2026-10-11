@@ -1,0 +1,54 @@
+{
+  "title": "Vitamin D supplementation and fracture prevention",
+  "file_stem": "vitamin_D_fracture",
+  "review_type": "narrative review",
+  "concepts": [
+    {"name": "vitamin D", "terms": ["Vitamin D [MeSH]", "Cholecalciferol [MeSH]", "Ergocalciferols [MeSH]", "vitamin D", "cholecalciferol", "ergocalciferol", "calcifediol", "vitamin D2", "vitamin D3"]},
+    {"name": "fracture", "terms": ["Fractures, Bone [MeSH]", "fracture", "fractures"]}
+  ],
+  "limits": "No restrictions on study design, language, or publication date were applied.",
+  "databases": [
+    {"id": "pubmed", "lines": [
+      {"q": "\"Vitamin D\"[Mesh] OR \"Cholecalciferol\"[Mesh] OR \"Ergocalciferols\"[Mesh]"},
+      {"q": "\"vitamin D\"[tiab] OR cholecalciferol[tiab] OR ergocalciferol[tiab] OR calcifediol[tiab] OR \"vitamin D2\"[tiab] OR \"vitamin D3\"[tiab]"},
+      {"q": "#1 OR #2"},
+      {"q": "\"Fractures, Bone\"[Mesh]"},
+      {"q": "fracture*[tiab]"},
+      {"q": "#4 OR #5"},
+      {"q": "#3 AND #6"}
+    ]},
+    {"id": "europepmc", "lines": [
+      {"q": "(TITLE_ABS:(\"vitamin D\" OR cholecalciferol OR ergocalciferol OR calcifediol)) OR (MESH:\"Vitamin D\")"},
+      {"q": "(TITLE_ABS:(fracture*)) OR (MESH:\"Fractures, Bone\")"},
+      {"q": "#1 AND #2"}
+    ]},
+    {"id": "ctgov", "lines": [
+      {"q": {"query.cond": "fracture", "query.intr": "vitamin D OR cholecalciferol OR ergocalciferol"}}
+    ]},
+    {"id": "embase", "lines": [
+      {"q": "'vitamin d'/exp OR 'colecalciferol'/exp OR 'ergocalciferol'/exp", "results": null},
+      {"q": "'vitamin d':ab,ti OR cholecalciferol:ab,ti OR ergocalciferol:ab,ti OR calcifediol:ab,ti", "results": null},
+      {"q": "#1 OR #2", "results": null},
+      {"q": "'fracture'/exp", "results": null},
+      {"q": "fracture*:ab,ti", "results": null},
+      {"q": "#4 OR #5", "results": null},
+      {"q": "#3 AND #6", "results": null}
+    ]},
+    {"id": "cochrane", "lines": [
+      {"q": "MeSH descriptor: [Vitamin D] explode all trees", "results": null},
+      {"q": "(\"vitamin D\" OR cholecalciferol OR ergocalciferol OR calcifediol):ti,ab,kw", "results": null},
+      {"q": "#1 OR #2", "results": null},
+      {"q": "MeSH descriptor: [Fractures, Bone] explode all trees", "results": null},
+      {"q": "fracture*:ti,ab,kw", "results": null},
+      {"q": "#4 OR #5", "results": null},
+      {"q": "#3 AND #6", "results": null}
+    ]},
+    {"id": "wos", "lines": [
+      {"q": "TS=(\"vitamin D\" OR cholecalciferol OR ergocalciferol OR calcifediol)", "results": null},
+      {"q": "TS=(fracture*)", "results": null},
+      {"q": "#1 AND #2", "results": null}
+    ]}
+  ],
+  "priority": ["pubmed", "embase", "cochrane", "wos", "europepmc", "ctgov", "citation"],
+  "citation": {"seeds": [], "direction": "both", "filter": ""}
+}

@@ -1,0 +1,108 @@
+{
+ "enl_ddl": [
+  "CREATE TABLE refs(id INTEGER PRIMARY KEY AUTOINCREMENT,trash_state INTEGER NOT NULL DEFAULT 0,text_styles TEXT NOT NULL DEFAULT \"\",reference_type INTEGER NOT NULL DEFAULT 0,author TEXT NOT NULL DEFAULT \"\",year TEXT NOT NULL DEFAULT \"\",title TEXT NOT NULL DEFAULT \"\",pages TEXT NOT NULL DEFAULT \"\",secondary_title TEXT NOT NULL DEFAULT \"\",volume TEXT NOT NULL DEFAULT \"\",number TEXT NOT NULL DEFAULT \"\",number_of_volumes TEXT NOT NULL DEFAULT \"\",secondary_author TEXT NOT NULL DEFAULT \"\",place_published TEXT NOT NULL DEFAULT \"\",publisher TEXT NOT NULL DEFAULT \"\",subsidiary_author TEXT NOT NULL DEFAULT \"\",edition TEXT NOT NULL DEFAULT \"\",keywords TEXT NOT NULL DEFAULT \"\",type_of_work TEXT NOT NULL DEFAULT \"\",date TEXT NOT NULL DEFAULT \"\",abstract TEXT NOT NULL DEFAULT \"\",label TEXT NOT NULL DEFAULT \"\",url TEXT NOT NULL DEFAULT \"\",tertiary_title TEXT NOT NULL DEFAULT \"\",tertiary_author TEXT NOT NULL DEFAULT \"\",notes TEXT NOT NULL DEFAULT \"\",isbn TEXT NOT NULL DEFAULT \"\",custom_1 TEXT NOT NULL DEFAULT \"\",custom_2 TEXT NOT NULL DEFAULT \"\",custom_3 TEXT NOT NULL DEFAULT \"\",custom_4 TEXT NOT NULL DEFAULT \"\",alternate_title TEXT NOT NULL DEFAULT \"\",accession_number TEXT NOT NULL DEFAULT \"\",call_number TEXT NOT NULL DEFAULT \"\",short_title TEXT NOT NULL DEFAULT \"\",custom_5 TEXT NOT NULL DEFAULT \"\",custom_6 TEXT NOT NULL DEFAULT \"\",section TEXT NOT NULL DEFAULT \"\",original_publication TEXT NOT NULL DEFAULT \"\",reprint_edition TEXT NOT NULL DEFAULT \"\",reviewed_item TEXT NOT NULL DEFAULT \"\",author_address TEXT NOT NULL DEFAULT \"\",caption TEXT NOT NULL DEFAULT \"\",custom_7 TEXT NOT NULL DEFAULT \"\",electronic_resource_number TEXT NOT NULL DEFAULT \"\",translated_author TEXT NOT NULL DEFAULT \"\",translated_title TEXT NOT NULL DEFAULT \"\",name_of_database TEXT NOT NULL DEFAULT \"\",database_provider TEXT NOT NULL DEFAULT \"\",research_notes TEXT NOT NULL DEFAULT \"\",language TEXT NOT NULL DEFAULT \"\",access_date TEXT NOT NULL DEFAULT \"\",last_modified_date TEXT NOT NULL DEFAULT \"\",record_properties TEXT NOT NULL DEFAULT \"\",added_to_library INTEGER NOT NULL DEFAULT 0,record_last_updated INTEGER NOT NULL DEFAULT 0,reserved3 INTEGER NOT NULL DEFAULT 0,fulltext_downloads TEXT NOT NULL DEFAULT \"\",read_status TEXT NOT NULL DEFAULT \"\",rating TEXT NOT NULL DEFAULT \"\",reserved7 TEXT NOT NULL DEFAULT \"\",reserved8 TEXT NOT NULL DEFAULT \"\",reserved9 TEXT NOT NULL DEFAULT \"\",reserved10 TEXT NOT NULL DEFAULT \"\")",
+  "CREATE TABLE misc( code INTEGER UNSIGNED NOT NULL,  subcode INTEGER UNSIGNED NOT NULL,  value BLOB NOT NULL, PRIMARY KEY (code, subcode))",
+  "CREATE TABLE groups( group_id INTEGER PRIMARY KEY,  recs_stamp INTEGER UNSIGNED NOT NULL DEFAULT 0,  spec BLOB NOT NULL DEFAULT \"\",  members BLOB NOT NULL DEFAULT \"\")",
+  "CREATE TABLE tag_groups( group_id INTEGER PRIMARY KEY,  spec BLOB NOT NULL DEFAULT \"\")",
+  "CREATE VIRTUAL TABLE tag_members USING fts5(tag_ids, tokenize = \"ascii\", detail=none)",
+  "CREATE TABLE file_res (  refs_id INTEGER NOT NULL,    file_path TEXT NOT NULL DEFAULT \"\",    file_type INTEGER NOT NULL,    file_pos INTEGER NOT NULL  )",
+  "CREATE TABLE ret_watch (refs_id INTEGER PRIMARY KEY, retwatch_status INTEGER NOT NULL DEFAULT 0, clean_doi TEXT NOT NULL COLLATE NOCASE DEFAULT \"\", clean_pmid TEXT NOT NULL COLLATE NOCASE DEFAULT \"\", clean_version INTEGER NOT NULL DEFAULT 1, retwatch_id INTEGER NOT NULL DEFAULT 0, retwatch_reason TEXT NOT NULL DEFAULT \"\", retwatch_url TEXT NOT NULL DEFAULT \"\")",
+  "CREATE TABLE terms( list_id INTEGER UNSIGNED NOT NULL,  term TEXT NOT NULL COLLATE ENCI_Base)",
+  "CREATE TABLE jterms( list_id INTEGER UNSIGNED NOT NULL,  packed_term TEXT NOT NULL COLLATE ENCI_Base,  term  TEXT NOT NULL COLLATE ENCI_Base,  abbr1 TEXT NOT NULL COLLATE ENCI_Base DEFAULT \"\",  abbr2 TEXT NOT NULL COLLATE ENCI_Base DEFAULT \"\",  abbr3 TEXT NOT NULL COLLATE ENCI_Base DEFAULT \"\")",
+  "CREATE TABLE refs_ord(ro_trash_state INTEGER, ro_key_2 TEXT COLLATE ENCIN_ko_KR, ro_key_3 TEXT COLLATE ENCIN_ko_KR, ro_id INTEGER PRIMARY KEY)",
+  "CREATE TABLE csort (  id INTEGER PRIMARY KEY AUTOINCREMENT,    mru_rank INTEGER NOT NULL DEFAULT 0,    sort_type INTEGER NOT NULL,    sort_spec TEXT NOT NULL,    sorted_order BLOB NOT NULL)",
+  "CREATE INDEX refs_year_index ON refs (year)",
+  "CREATE UNIQUE INDEX fileres_refsidpathtype_index ON file_res ( refs_id, file_path, file_type)",
+  "CREATE UNIQUE INDEX fileres_refsidpos_index ON file_res (refs_id, file_pos)",
+  "CREATE UNIQUE INDEX fileres_path_index  ON file_res(file_path) WHERE file_type =  1 OR file_type =  4",
+  "CREATE INDEX retwatch_retwatchstatus_index ON ret_watch (retwatch_status)",
+  "CREATE INDEX retwatch_cleandoi_index ON ret_watch (clean_doi)",
+  "CREATE INDEX retwatch_cleanpmid_index ON ret_watch (clean_pmid)",
+  "CREATE UNIQUE INDEX terms_term_index on terms (list_id, term)",
+  "CREATE UNIQUE INDEX jterms_packedterm_index on jterms (list_id, packed_term)",
+  "CREATE INDEX jterms_term_index on jterms (list_id, term)",
+  "CREATE INDEX jterms_abbr1_index on jterms (list_id, abbr1)",
+  "CREATE INDEX jterms_abbr2_index on jterms (list_id, abbr2)",
+  "CREATE INDEX jterms_abbr3_index on jterms (list_id, abbr3)",
+  "CREATE INDEX refs_ord_keys_index ON refs_ord(ro_trash_state, ro_key_2, ro_key_3, ro_id)",
+  "CREATE TRIGGER refs__tag_members_AI AFTER INSERT ON refs BEGIN INSERT INTO tag_members  (rowid, tag_ids) VALUES (new.id, ' '); END",
+  "CREATE TRIGGER refs__tag_members_AD AFTER DELETE ON refs BEGIN DELETE FROM tag_members WHERE rowid = old.id; END",
+  "CREATE TRIGGER refs__ret_watch_AI AFTER INSERT ON refs BEGIN INSERT INTO ret_watch (refs_id) VALUES (new.id); END",
+  "CREATE TRIGGER refs__ret_watch_AD AFTER DELETE ON refs BEGIN DELETE FROM ret_watch WHERE refs_id = old.id; END",
+  "CREATE TRIGGER refs__ret_watch_AU AFTER UPDATE ON refs BEGIN UPDATE ret_watch SET retwatch_status = 0, clean_doi = \"\", clean_pmid = \"\", clean_version = 1, retwatch_id = 0, retwatch_reason = \"\", retwatch_url = \"\" WHERE (refs_id = new.id) AND (old.electronic_resource_number != new.electronic_resource_number OR old.accession_number != new.accession_number OR old.database_provider != new.database_provider OR ((old.url != new.url) AND ((0 = instr(old.url, 'ncbi.nlm.nih.gov/pubmed/')) != (0 = instr(new.url, 'ncbi.nlm.nih.gov/pubmed/'))))); END",
+  "CREATE TRIGGER refs__refs_ord_AI  AFTER INSERT ON refs BEGIN INSERT INTO refs_ord (ro_trash_state, ro_key_2, ro_key_3, ro_id) VALUES (new.trash_state, EN_MAKE_SORT_KEY(new.author,2,12), EN_MAKE_SORT_KEY(new.year,3,12), new.id); END",
+  "CREATE TRIGGER refs__refs_ord_AD  AFTER DELETE ON refs BEGIN DELETE FROM refs_ord WHERE ro_id = old. id; END",
+  "CREATE TRIGGER refs__refs_ord_AU  AFTER UPDATE ON refs BEGIN DELETE FROM refs_ord WHERE ro_id = old. id;INSERT INTO refs_ord (ro_trash_state, ro_key_2, ro_key_3, ro_id) VALUES (new.trash_state, EN_MAKE_SORT_KEY(new.author,2,12), EN_MAKE_SORT_KEY(new.year,3,12), new.id); END"
+ ],
+ "pdb_ddl": [
+  "CREATE TABLE pdf_index (  pdfi_id INTEGER PRIMARY KEY AUTOINCREMENT,    version INTEGER UNSIGNED NOT NULL DEFAULT 0,    refs_id INTEGER UNSIGNED NOT NULL DEFAULT 0,    file_timestamp INTEGER UNSIGNED NOT NULL DEFAULT 0,    subkey BLOB NOT NULL,contents TEXT NOT NULL DEFAULT \"\",tag TEXT NOT NULL DEFAULT \"\"  )",
+  "CREATE UNIQUE INDEX pdfindex_refsidsubkey_index ON pdf_index (refs_id, subkey)"
+ ],
+ "misc": [
+  [
+   1,
+   0,
+   "17"
+  ],
+  [
+   9,
+   0,
+   "1"
+  ],
+  [
+   10,
+   0,
+   "20"
+  ],
+  [
+   7,
+   1,
+   "<sort_spec version=\"1\"><locale id=\"ko_KR\" /><key id=\"2\" ascending=\"true\" /><key id=\"3\" ascending=\"true\" /><key id=\"16386\" ascending=\"true\" /></sort_spec>"
+  ],
+  [
+   6,
+   1,
+   "<window_prefs version=\"1\"><rect top=\"0\" left=\"0\" bottom=\"218\" right=\"378\" /><preview_divider position=\"0\" /></window_prefs>"
+  ],
+  [
+   6,
+   2,
+   "<window_prefs version=\"1\"><rect top=\"0\" left=\"0\" bottom=\"285\" right=\"339\" /></window_prefs>"
+  ],
+  [
+   2,
+   1,
+   "<termlist_spec columns=\"1\" delimiter_flags=\"0\" delimiter_str=\"\" list_id=\"1\" list_name=\"Authors\" />"
+  ],
+  [
+   2,
+   2,
+   "<termlist_spec columns=\"4\" delimiter_flags=\"0\" delimiter_str=\"\" list_id=\"2\" list_name=\"Journals\" />"
+  ],
+  [
+   2,
+   3,
+   "<termlist_spec columns=\"1\" delimiter_flags=\"10\" delimiter_str=\"\" list_id=\"3\" list_name=\"Keywords\" />"
+  ],
+  [
+   4,
+   0,
+   "2 1 10 1 13 1 22 1 45 1 6 2 29 2 15 3 "
+  ],
+  [
+   23,
+   0,
+   "1"
+  ],
+  [
+   19,
+   0,
+   "1"
+  ],
+  [
+   20,
+   0,
+   "1"
+  ]
+ ]
+}

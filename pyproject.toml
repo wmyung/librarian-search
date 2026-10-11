@@ -1,0 +1,30 @@
+[project]
+name = "litsearch"
+version = "0.1.0"
+description = "Medical-librarian-style systematic literature search: line-by-line strategies, multi-database retrieval, deduplication, native EndNote library, PRISMA-S methods text and reply letter"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+keywords = ["systematic-review", "literature-search", "pubmed", "europe-pmc", "endnote", "prisma-s", "deduplication", "evidence-synthesis", "medical-library", "claude-code"]
+dependencies = [
+    "openpyxl>=3.1",
+    "python-docx>=1.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/wmyung/litsearch"
+
+[project.scripts]
+litsearch = "litsearch.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["litsearch"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

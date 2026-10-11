@@ -306,7 +306,6 @@ uv run --project ~/librarian-search python -m pytest ~/librarian-search/tests -q
 - **[wmyung/endnote-fieldcode-converter](https://github.com/wmyung/endnote-fieldcode-converter)**: turn plain-text citations in a DOCX manuscript into EndNote field codes. A good next step after screening the librarian-search library.
 - **[wmyung/endnote-fieldcode-gui](https://github.com/wmyung/endnote-fieldcode-gui)**: an offline Mac app for the same conversion.
 - **[wmyung/paper-to-llm-wiki-digest](https://github.com/wmyung/paper-to-llm-wiki-digest)**: digest included papers into an LLM-ready research wiki.
-- **[wmyung/manuscript-to-editable-slides](https://github.com/wmyung/manuscript-to-editable-slides)**: turn the finished manuscript into an editable slide deck.
 
 ## Notes
 

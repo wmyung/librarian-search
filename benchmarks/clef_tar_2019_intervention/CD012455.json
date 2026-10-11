@@ -1,0 +1,16 @@
+{
+ "topic": "CD012455",
+ "title": "Melatonin for the promotion of sleep in adults in the intensive care unit",
+ "written_from": "review title only (original Cochrane query not consulted)",
+ "pubmed": [
+  {
+   "q": "\"Melatonin\"[Mesh] OR melatonin*[tiab] OR ramelteon[tiab] OR tasimelteon[tiab] OR agomelatine[tiab]"
+  },
+  {
+   "q": "\"Intensive Care Units\"[Mesh] OR \"Critical Care\"[Mesh] OR \"Critical Illness\"[Mesh] OR \"Respiration, Artificial\"[Mesh] OR \"intensive care\"[tiab] OR ICU[tiab] OR \"critically ill\"[tiab] OR \"critical care\"[tiab] OR \"mechanical ventilation\"[tiab] OR \"mechanically ventilated\"[tiab] OR \"cardiac surgery\"[tiab] OR postoperativ*[tiab]"
+  },
+  {
+   "q": "#1 AND #2"
+  }
+ ]
+}

@@ -1,0 +1,19 @@
+{
+ "topic": "CD010239",
+ "title": "Lower versus higher oxygen concentrations titrated to target oxygen saturations during resuscitation of preterm infants at birth",
+ "written_from": "review title only (original Cochrane query not consulted)",
+ "pubmed": [
+  {
+   "q": "\"Oxygen\"[Mesh] OR \"Oxygen Inhalation Therapy\"[Mesh] OR oxygen[tiab] OR FiO2[tiab] OR \"room air\"[tiab] OR \"air\"[tiab] OR SpO2[tiab] OR \"oxygen saturation\"[tiab]"
+  },
+  {
+   "q": "\"Resuscitation\"[Mesh] OR \"Cardiopulmonary Resuscitation\"[Mesh] OR \"Delivery Rooms\"[Mesh] OR resuscitat*[tiab] OR \"delivery room\"[tiab] OR stabili*[tiab] OR \"at birth\"[tiab]"
+  },
+  {
+   "q": "\"Infant, Premature\"[Mesh] OR \"Infant, Extremely Premature\"[Mesh] OR \"Infant, Newborn\"[Mesh] OR preterm*[tiab] OR \"pre-term\"[tiab] OR prematur*[tiab] OR neonat*[tiab] OR newborn*[tiab] OR \"low birth weight\"[tiab] OR VLBW[tiab]"
+  },
+  {
+   "q": "#1 AND #2 AND #3"
+  }
+ ]
+}

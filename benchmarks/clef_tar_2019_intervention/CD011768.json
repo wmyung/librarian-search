@@ -1,0 +1,19 @@
+{
+ "topic": "CD011768",
+ "title": "Educational interventions for improving primary caregiver complementary feeding practices for children aged 24 months and under",
+ "written_from": "review title only (original Cochrane query not consulted)",
+ "pubmed": [
+  {
+   "q": "\"Infant Nutritional Physiological Phenomena\"[Mesh] OR \"Infant Food\"[Mesh] OR \"Feeding Behavior\"[Mesh] OR \"complementary feeding\"[tiab] OR \"complementary food\"[tiab] OR \"complementary foods\"[tiab] OR weaning[tiab] OR \"infant feeding\"[tiab] OR \"child feeding\"[tiab] OR \"feeding practices\"[tiab] OR \"solid food\"[tiab] OR \"solid foods\"[tiab]"
+  },
+  {
+   "q": "\"Health Education\"[Mesh] OR \"Counseling\"[Mesh] OR \"Health Promotion\"[Mesh] OR educat*[tiab] OR counsel*[tiab] OR \"nutrition education\"[tiab] OR promot*[tiab] OR \"behaviour change\"[tiab] OR \"behavior change\"[tiab] OR intervention*[tiab]"
+  },
+  {
+   "q": "\"Infant\"[Mesh] OR \"Child, Preschool\"[Mesh] OR infan*[tiab] OR child*[tiab] OR toddler*[tiab] OR \"months of age\"[tiab] OR mother*[tiab] OR caregiver*[tiab]"
+  },
+  {
+   "q": "#1 AND #2 AND #3"
+  }
+ ]
+}

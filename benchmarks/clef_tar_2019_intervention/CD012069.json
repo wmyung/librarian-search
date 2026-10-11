@@ -1,0 +1,16 @@
+{
+ "topic": "CD012069",
+ "title": "Methylphenidate for ADHD in children and adolescents \u2013 assessment of adverse events in non-randomised studies",
+ "written_from": "review title only (original Cochrane query not consulted)",
+ "pubmed": [
+  {
+   "q": "\"Methylphenidate\"[Mesh] OR methylphenidat*[tiab] OR Ritalin[tiab] OR Concerta[tiab] OR Medikinet[tiab] OR Equasym[tiab] OR Metadate[tiab] OR Methylin[tiab] OR Daytrana[tiab] OR Focalin[tiab] OR dexmethylphenidate[tiab] OR MPH[tiab]"
+  },
+  {
+   "q": "\"Attention Deficit Disorder with Hyperactivity\"[Mesh] OR ADHD[tiab] OR ADDH[tiab] OR \"attention deficit\"[tiab] OR hyperkine*[tiab] OR hyperactiv*[tiab] OR \"minimal brain dysfunction\"[tiab]"
+  },
+  {
+   "q": "#1 AND #2"
+  }
+ ]
+}

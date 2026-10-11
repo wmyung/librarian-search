@@ -1,0 +1,16 @@
+{
+ "topic": "CD011571",
+ "title": "Antistreptococcal interventions for guttate and chronic plaque psoriasis",
+ "written_from": "review title only (original Cochrane query not consulted)",
+ "pubmed": [
+  {
+   "q": "\"Psoriasis\"[Mesh] OR psoria*[tiab]"
+  },
+  {
+   "q": "\"Streptococcal Infections\"[Mesh] OR \"Streptococcus pyogenes\"[Mesh] OR \"Anti-Bacterial Agents\"[Mesh] OR \"Tonsillectomy\"[Mesh] OR \"Penicillins\"[Mesh] OR streptococ*[tiab] OR antistreptococ*[tiab] OR tonsillectom*[tiab] OR tonsil*[tiab] OR antibiotic*[tiab] OR penicillin*[tiab] OR rifampicin[tiab] OR azithromycin[tiab] OR erythromycin[tiab] OR macrolide*[tiab]"
+  },
+  {
+   "q": "#1 AND #2"
+  }
+ ]
+}

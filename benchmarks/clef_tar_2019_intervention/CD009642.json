@@ -1,0 +1,19 @@
+{
+ "topic": "CD009642",
+ "title": "Continuous intravenous perioperative lidocaine infusion for postoperative pain and recovery in adults",
+ "written_from": "review title only (original Cochrane query not consulted)",
+ "pubmed": [
+  {
+   "q": "\"Lidocaine\"[Mesh] OR lidocaine[tiab] OR lignocaine[tiab] OR xylocaine[tiab]"
+  },
+  {
+   "q": "\"Infusions, Intravenous\"[Mesh] OR \"Injections, Intravenous\"[Mesh] OR intravenous*[tiab] OR \"i.v.\"[tiab] OR IV[tiab] OR infusion*[tiab] OR systemic[tiab]"
+  },
+  {
+   "q": "\"Pain, Postoperative\"[Mesh] OR \"Postoperative Period\"[Mesh] OR \"Perioperative Care\"[Mesh] OR \"Surgical Procedures, Operative\"[Mesh] OR postoperativ*[tiab] OR \"post-operative\"[tiab] OR perioperativ*[tiab] OR intraoperativ*[tiab] OR surg*[tiab] OR anesthe*[tiab] OR anaesthe*[tiab] OR \"ileus\"[tiab]"
+  },
+  {
+   "q": "#1 AND #2 AND #3"
+  }
+ ]
+}

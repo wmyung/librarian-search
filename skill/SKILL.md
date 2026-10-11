@@ -32,6 +32,7 @@ Read [syntax.md](syntax.md) before writing any search lines.
   - check abbreviations for false hits; they are acceptable when ANDed with another concept
   - instruments without MeSH (questionnaires, scales): search the acronym and full name as free text, and check a sample of hits for noise
 - **Diagnostic test accuracy reviews**: index tests are often reported only in the full text (benchmark lesson: a CRP/procalcitonin review lost 8 of 23 included studies on the index-test concept). OR the reference-standard terms into the index-test concept (e.g. `procalcitonin OR CRP OR … OR DMSA OR scintigraphy`), or drop the index-test concept when the condition × population literature is small enough to screen. Avoid population concepts that abstracts may not state (e.g. "alcohol" for alcoholic liver disease cohorts) unless the set is otherwise unmanageable.
+- **Drug and adverse-event reviews**: abstracts of large trials and cohort reports often say "medication", "pharmacotherapy", "stimulants" or the trial acronym instead of the drug name (benchmark lesson: methylphenidate adverse-event review). Add drug-class terms and known trial acronyms to the intervention concept.
 - Translate the **same logic** into each database's syntax (syntax.md). Each database block is line-by-line, like a librarian's worksheet:
   concept-1 lines → `#1 OR …` → concept-2 lines → `#… OR …` → final `#a AND #b`. `#n` references are expanded automatically for automatic sources.
 - Default sources:
@@ -59,7 +60,7 @@ Read [syntax.md](syntax.md) before writing any search lines.
 ### 5. Update searches
 - To rerun a previous search, pass the earlier export(s): `LS build <folder> --previous old_library.ris`. Records already screened are marked; the EndNote library gets "New since previous search" and "Previously screened" groups, and the letter/methods report the counts.
 
-### 6. Citation searching (recommended)
+### 6. Citation searching (recommended; worth +7 points of recall on intervention reviews in our benchmark)
 - Pick 2–5 key trials or systematic reviews from the results, confirm with the user, then
   `LS cite <folder> --seed <DOI|PMID> …`. If the results drift off-topic, set `citation.filter` in strategy.json to a regex requiring both concepts, e.g. `^(?=.*(vitamin d|cholecalciferol))(?=.*fracture)`, and rerun. Report the filter in the letter (the methods text does this automatically).
 

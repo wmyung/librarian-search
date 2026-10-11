@@ -1,0 +1,16 @@
+{
+ "topic": "CD012164",
+ "title": "Subfascial endoscopic perforator surgery (SEPS) for treating venous leg ulcers",
+ "written_from": "review title only (original Cochrane query not consulted)",
+ "pubmed": [
+  {
+   "q": "\"Varicose Ulcer\"[Mesh] OR \"Leg Ulcer\"[Mesh] OR \"Venous Insufficiency\"[Mesh] OR \"venous ulcer\"[tiab] OR \"venous ulcers\"[tiab] OR \"leg ulcer\"[tiab] OR \"leg ulcers\"[tiab] OR \"venous insufficiency\"[tiab] OR \"chronic venous\"[tiab] OR \"varicose ulcer\"[tiab] OR \"stasis ulcer\"[tiab]"
+  },
+  {
+   "q": "SEPS[tiab] OR subfascial[tiab] OR \"perforator\"[tiab] OR perforators[tiab] OR \"perforating vein\"[tiab] OR \"perforating veins\"[tiab] OR \"Endoscopy\"[Mesh] OR endoscop*[tiab] OR \"Linton\"[tiab]"
+  },
+  {
+   "q": "#1 AND #2"
+  }
+ ]
+}

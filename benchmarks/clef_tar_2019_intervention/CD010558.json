@@ -1,0 +1,31 @@
+{
+ "topic": "CD010558",
+ "title": "Psychological therapies for treatment-resistant depression in adults",
+ "written_from": "review title only (original Cochrane query not consulted)",
+ "pubmed": [
+  {
+   "q": "\"Psychotherapy\"[Mesh] OR \"Cognitive Behavioral Therapy\"[Mesh] OR \"Mindfulness\"[Mesh]"
+  },
+  {
+   "q": "psychotherap*[tiab] OR \"psychological therap*\"[tiab] OR \"psychological treatment*\"[tiab] OR \"psychological intervention*\"[tiab] OR CBT[tiab] OR cognitive[tiab] OR behavio*[tiab] OR interpersonal[tiab] OR IPT[tiab] OR mindfulness[tiab] OR MBCT[tiab] OR \"dialectical\"[tiab] OR \"acceptance and commitment\"[tiab] OR psychodynamic[tiab] OR \"problem solving\"[tiab] OR \"CBASP\"[tiab] OR counsel*[tiab]"
+  },
+  {
+   "q": "#1 OR #2"
+  },
+  {
+   "q": "\"Depressive Disorder, Treatment-Resistant\"[Mesh]"
+  },
+  {
+   "q": "\"treatment resistant\"[tiab] OR \"treatment-resistant\"[tiab] OR \"treatment refractory\"[tiab] OR refractory[tiab] OR \"non-responders\"[tiab] OR nonrespon*[tiab] OR \"non-response\"[tiab] OR \"inadequate response\"[tiab] OR \"partial response\"[tiab] OR \"partial responders\"[tiab] OR resistant[tiab] OR chronic[tiab] OR \"residual symptoms\"[tiab]"
+  },
+  {
+   "q": "\"Depression\"[Mesh] OR \"Depressive Disorder\"[Mesh] OR depress*[tiab]"
+  },
+  {
+   "q": "(#4 OR #5) AND #6"
+  },
+  {
+   "q": "#3 AND #7"
+  }
+ ]
+}

@@ -1,0 +1,22 @@
+{
+ "topic": "CD010038",
+ "title": "Face-to-face interventions for informing or educating parents about early childhood vaccination",
+ "written_from": "review title only (original Cochrane query not consulted)",
+ "pubmed": [
+  {
+   "q": "\"Vaccination\"[Mesh] OR \"Immunization\"[Mesh] OR \"Vaccines\"[Mesh] OR vaccin*[tiab] OR immuni*[tiab] OR immunis*[tiab]"
+  },
+  {
+   "q": "\"Parents\"[Mesh] OR \"Mothers\"[Mesh] OR parent*[tiab] OR mother*[tiab] OR father*[tiab] OR caregiver*[tiab] OR famil*[tiab]"
+  },
+  {
+   "q": "\"Health Education\"[Mesh] OR \"Patient Education as Topic\"[Mesh] OR \"Health Knowledge, Attitudes, Practice\"[Mesh] OR \"Counseling\"[Mesh] OR \"Communication\"[Mesh] OR educat*[tiab] OR inform*[tiab] OR counsel*[tiab] OR communicat*[tiab] OR \"face-to-face\"[tiab] OR \"home visit\"[tiab] OR \"home visits\"[tiab] OR session*[tiab] OR discuss*[tiab] OR knowledge[tiab]"
+  },
+  {
+   "q": "\"Infant\"[Mesh] OR \"Child, Preschool\"[Mesh] OR \"Child\"[Mesh] OR infan*[tiab] OR child*[tiab] OR baby[tiab] OR babies[tiab] OR toddler*[tiab] OR newborn*[tiab]"
+  },
+  {
+   "q": "#1 AND #2 AND #3 AND #4"
+  }
+ ]
+}

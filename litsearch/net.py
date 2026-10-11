@@ -46,8 +46,8 @@ def request(url: str, params: dict | None = None, data: dict | None = None,
 
 
 def get_json(url: str, params: dict | None = None, **kw):
-    return json.loads(request(url, params, **kw))
+    return json.loads(request(url, params, **kw), strict=False)
 
 
 def post_json(url: str, data: dict, **kw):
-    return json.loads(request(url, data=data, **kw))
+    return json.loads(request(url, data=data, **kw), strict=False)

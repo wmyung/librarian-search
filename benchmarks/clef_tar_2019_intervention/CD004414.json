@@ -1,0 +1,25 @@
+{
+ "topic": "CD004414",
+ "title": "Interventions for preventing occupational irritant hand dermatitis",
+ "written_from": "review title only (original Cochrane query not consulted)",
+ "pubmed": [
+  {
+   "q": "\"Dermatitis, Irritant\"[Mesh] OR \"Dermatitis, Occupational\"[Mesh] OR \"Hand Dermatoses\"[Mesh] OR \"Eczema\"[Mesh]"
+  },
+  {
+   "q": "(hand[tiab] OR hands[tiab]) AND (dermatit*[tiab] OR eczema*[tiab])"
+  },
+  {
+   "q": "\"irritant dermatitis\"[tiab] OR \"irritant contact dermatitis\"[tiab] OR \"occupational dermatitis\"[tiab] OR \"occupational skin\"[tiab] OR \"skin disease\"[tiab] OR \"wet work\"[tiab]"
+  },
+  {
+   "q": "#1 OR #2 OR #3"
+  },
+  {
+   "q": "\"Occupational Diseases\"[Mesh] OR \"Occupational Exposure\"[Mesh] OR occupation*[tiab] OR work*[tiab] OR employ*[tiab] OR nurse*[tiab] OR hairdress*[tiab] OR \"health care workers\"[tiab] OR apprentice*[tiab]"
+  },
+  {
+   "q": "#4 AND #5"
+  }
+ ]
+}

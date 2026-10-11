@@ -1,0 +1,22 @@
+{
+ "topic": "CD010753",
+ "title": "Antidepressants for insomnia in adults",
+ "written_from": "review title only (original Cochrane query not consulted)",
+ "pubmed": [
+  {
+   "q": "\"Antidepressive Agents\"[Mesh] OR antidepress*[tiab] OR \"anti-depressant\"[tiab] OR \"anti-depressants\"[tiab]"
+  },
+  {
+   "q": "trazodone[tiab] OR doxepin[tiab] OR amitriptyline[tiab] OR mirtazapine[tiab] OR trimipramine[tiab] OR paroxetine[tiab] OR fluoxetine[tiab] OR sertraline[tiab] OR citalopram[tiab] OR escitalopram[tiab] OR agomelatine[tiab] OR nefazodone[tiab] OR mianserin[tiab] OR imipramine[tiab] OR nortriptyline[tiab] OR clomipramine[tiab] OR venlafaxine[tiab] OR duloxetine[tiab] OR bupropion[tiab] OR SSRI*[tiab] OR tricyclic*[tiab]"
+  },
+  {
+   "q": "#1 OR #2"
+  },
+  {
+   "q": "\"Sleep Initiation and Maintenance Disorders\"[Mesh] OR insomni*[tiab] OR \"sleep disorder*\"[tiab] OR \"sleep disturbance*\"[tiab] OR \"sleep problem*\"[tiab] OR sleepless*[tiab] OR \"poor sleep\"[tiab] OR \"sleep quality\"[tiab]"
+  },
+  {
+   "q": "#3 AND #4"
+  }
+ ]
+}

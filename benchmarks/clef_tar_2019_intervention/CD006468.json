@@ -1,0 +1,31 @@
+{
+ "topic": "CD006468",
+ "title": "Anticoagulation for people with cancer and central venous catheters",
+ "written_from": "review title only (original Cochrane query not consulted)",
+ "pubmed": [
+  {
+   "q": "\"Anticoagulants\"[Mesh] OR \"Heparin\"[Mesh] OR \"Heparin, Low-Molecular-Weight\"[Mesh] OR \"Warfarin\"[Mesh] OR \"Fibrinolytic Agents\"[Mesh]"
+  },
+  {
+   "q": "anticoagula*[tiab] OR heparin*[tiab] OR LMWH[tiab] OR enoxaparin[tiab] OR dalteparin[tiab] OR nadroparin[tiab] OR tinzaparin[tiab] OR warfarin[tiab] OR \"vitamin K antagonist\"[tiab] OR fondaparinux[tiab] OR rivaroxaban[tiab] OR apixaban[tiab] OR thromboprophyla*[tiab]"
+  },
+  {
+   "q": "#1 OR #2"
+  },
+  {
+   "q": "\"Catheterization, Central Venous\"[Mesh] OR \"Central Venous Catheters\"[Mesh] OR \"Catheters, Indwelling\"[Mesh]"
+  },
+  {
+   "q": "\"central venous\"[tiab] OR CVC[tiab] OR CVCs[tiab] OR \"venous access\"[tiab] OR catheter*[tiab] OR port[tiab] OR ports[tiab] OR PICC[tiab] OR \"Hickman\"[tiab]"
+  },
+  {
+   "q": "#4 OR #5"
+  },
+  {
+   "q": "\"Neoplasms\"[Mesh] OR cancer*[tiab] OR neoplas*[tiab] OR tumor*[tiab] OR tumour*[tiab] OR malignan*[tiab] OR oncolog*[tiab] OR chemotherap*[tiab] OR leukemi*[tiab] OR leukaemi*[tiab] OR lymphoma*[tiab]"
+  },
+  {
+   "q": "#3 AND #6 AND #7"
+  }
+ ]
+}

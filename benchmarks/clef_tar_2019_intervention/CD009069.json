@@ -1,0 +1,19 @@
+{
+ "topic": "CD009069",
+ "title": "Prophylactic vaccination against human papillomaviruses to prevent cervical cancer and its precursors",
+ "written_from": "review title only (original Cochrane query not consulted)",
+ "pubmed": [
+  {
+   "q": "\"Papillomavirus Vaccines\"[Mesh]"
+  },
+  {
+   "q": "(HPV[tiab] OR papillomavirus*[tiab] OR \"papilloma virus\"[tiab]) AND (vaccin*[tiab] OR immuni*[tiab])"
+  },
+  {
+   "q": "Gardasil[tiab] OR Cervarix[tiab] OR \"HPV-16/18\"[tiab] OR \"HPV16/18\"[tiab] OR \"quadrivalent vaccine\"[tiab] OR \"bivalent vaccine\"[tiab]"
+  },
+  {
+   "q": "#1 OR #2 OR #3"
+  }
+ ]
+}

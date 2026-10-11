@@ -29,7 +29,19 @@ def resolve(seed: str) -> dict:
         if not d:
             raise ValueError(f"Cannot resolve seed: {seed}")
         key = "doi:" + d
-    return net.get_json(f"{API}/works/{key}", _p(), min_interval=0.12)
+    try:
+        return net.get_json(f"{API}/works/{key}", _p(), min_interval=0.12)
+    except RuntimeError as e:
+        if not key.startswith("pmid:") or "HTTP 404" not in str(e):
+            raise
+        # OpenAlex lacks some PMID links: fall back to the DOI recorded in PubMed
+        from . import pubmed
+        s = net.get_json(pubmed.EUTILS + "esummary.fcgi", {"db": "pubmed", "id": key[5:], "retmode": "json"})
+        ids = s.get("result", {}).get(key[5:], {}).get("articleids", [])
+        doi = next((x["value"] for x in ids if x.get("idtype") == "doi"), "")
+        if not doi:
+            raise
+        return net.get_json(f"{API}/works/doi:{norm_doi(doi)}", _p(), min_interval=0.12)
 
 
 def _batch(ids: list[str]) -> list[dict]:

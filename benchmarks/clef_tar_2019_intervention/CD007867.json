@@ -1,0 +1,22 @@
+{
+ "topic": "CD007867",
+ "title": "Prescribed hypocaloric nutrition support for critically-ill adults",
+ "written_from": "review title only (original Cochrane query not consulted)",
+ "pubmed": [
+  {
+   "q": "\"Nutritional Support\"[Mesh] OR \"Enteral Nutrition\"[Mesh] OR \"Parenteral Nutrition\"[Mesh] OR \"Caloric Restriction\"[Mesh] OR \"Energy Intake\"[Mesh]"
+  },
+  {
+   "q": "hypocalor*[tiab] OR underfeed*[tiab] OR \"under-feeding\"[tiab] OR \"permissive underfeeding\"[tiab] OR \"trophic feeding\"[tiab] OR \"trophic\"[tiab] OR \"caloric intake\"[tiab] OR \"calorie intake\"[tiab] OR \"energy intake\"[tiab] OR \"low calorie\"[tiab] OR \"restricted calorie\"[tiab] OR normocalor*[tiab] OR \"full feeding\"[tiab] OR enteral[tiab] OR parenteral[tiab] OR \"nutrition support\"[tiab] OR \"nutritional support\"[tiab]"
+  },
+  {
+   "q": "#1 OR #2"
+  },
+  {
+   "q": "\"Critical Illness\"[Mesh] OR \"Critical Care\"[Mesh] OR \"Intensive Care Units\"[Mesh] OR \"critically ill\"[tiab] OR \"critical illness\"[tiab] OR \"intensive care\"[tiab] OR ICU[tiab] OR \"mechanically ventilated\"[tiab] OR sepsis[tiab] OR septic[tiab] OR trauma[tiab]"
+  },
+  {
+   "q": "#3 AND #4"
+  }
+ ]
+}

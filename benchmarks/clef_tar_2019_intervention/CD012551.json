@@ -1,0 +1,16 @@
+{
+ "topic": "CD012551",
+ "title": "Non-pharmacological interventions for treating chronic prostatitis/chronic pelvic pain syndrome",
+ "written_from": "review title only (original Cochrane query not consulted)",
+ "pubmed": [
+  {
+   "q": "\"Prostatitis\"[Mesh] OR \"Pelvic Pain\"[Mesh] OR prostatit*[tiab] OR \"pelvic pain\"[tiab] OR \"CP/CPPS\"[tiab] OR CPPS[tiab] OR prostatodynia[tiab] OR \"prostate pain\"[tiab]"
+  },
+  {
+   "q": "\"Men\"[Mesh] OR \"Male\"[Mesh] OR men[tiab] OR male*[tiab] OR prostat*[tiab]"
+  },
+  {
+   "q": "#1 AND #2"
+  }
+ ]
+}

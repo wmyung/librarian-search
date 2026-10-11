@@ -1,0 +1,22 @@
+{
+ "topic": "CD001261",
+ "title": "Vaccines for preventing typhoid fever",
+ "written_from": "review title only (original Cochrane query not consulted)",
+ "pubmed": [
+  {
+   "q": "\"Typhoid-Paratyphoid Vaccines\"[Mesh] OR \"Vaccines\"[Mesh] OR \"Vaccination\"[Mesh] OR \"Immunization\"[Mesh]"
+  },
+  {
+   "q": "vaccin*[tiab] OR immuni*[tiab] OR Ty21a[tiab] OR \"Vi polysaccharide\"[tiab] OR \"Vi-TT\"[tiab] OR \"Vi-rEPA\"[tiab] OR \"Vi conjugate\"[tiab] OR Typbar[tiab] OR Vivotif[tiab] OR Typhim[tiab]"
+  },
+  {
+   "q": "#1 OR #2"
+  },
+  {
+   "q": "\"Typhoid Fever\"[Mesh] OR \"Salmonella typhi\"[Mesh] OR typhoid*[tiab] OR \"enteric fever\"[tiab] OR \"Salmonella typhi\"[tiab] OR \"Salmonella enterica serovar Typhi\"[tiab]"
+  },
+  {
+   "q": "#3 AND #4"
+  }
+ ]
+}

@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Claude Code skill](https://img.shields.io/badge/Claude%20Code-skill-d97757)](skill/SKILL.md)
 [![PRISMA-S](https://img.shields.io/badge/reporting-PRISMA--S-6f42c1)](https://doi.org/10.1186/s13643-020-01542-z)
-[![Search recall](https://img.shields.io/badge/recall%20on%208%20Cochrane%20reviews-93%25-success)](#benchmarks)
+[![Search recall](https://img.shields.io/badge/recall%20on%2026%20Cochrane%20reviews-95%25-success)](#benchmarks)
 [![Dedup](https://img.shields.io/badge/dedup%20(ASySD%20set)-588%20vs%20584%20true-success)](#benchmarks)
 
 When you ask a medical librarian for a literature search for a review, you get back a **reply letter**, a **search-strategy spreadsheet** (every database, every line, every hit count), and an **EndNote library** with one group per database and duplicates in the Trash. librarian-search produces that same package. The search runs in minutes, and a librarian or reviewer can audit every line.
@@ -65,7 +65,13 @@ Compared with end-to-end LLM review pipelines (TrialMind, otto-SR, AgentSLR), li
 
 ## Benchmarks
 
-Both benchmarks are scripts in [`benchmarks/`](benchmarks/) that download public data and can be rerun.
+All benchmarks are scripts in [`benchmarks/`](benchmarks/) that download public data and can be rerun:
+
+```bash
+uv run python benchmarks/clef_tar_recall.py                  # 8 diagnostic accuracy reviews
+uv run python benchmarks/clef_tar_recall.py --set 2019int    # 18 intervention reviews (add --cite for citation searching)
+uv run python benchmarks/dedup_asysd.py                      # deduplication
+```
 
 ### Search recall: 8 Cochrane diagnostic accuracy reviews (CLEF eHealth TAR 2017)
 
@@ -84,6 +90,33 @@ PubMed strategies were written **from the review title only**, as the skill does
 | **Total** | **137/147 (93.2%)**, 100% in 6/8 reviews | median 1.9× the original | |
 
 All 10 misses were diagnosed by `validate`. In CD009185 every missed study failed the index-test concept: their abstracts never mention CRP, procalcitonin or ESR. In CD010542 both misses failed the "alcohol" concept. These lessons are now rules in the skill: OR reference-standard terms into the index-test concept for diagnostic reviews, avoid population concepts that abstracts may omit, and always run a validation set. Real searches also go through Embase, Cochrane and citation searching, which this PubMed-only benchmark leaves out.
+
+### Search recall: 18 Cochrane intervention reviews (CLEF eHealth TAR 2019)
+
+Same protocol: strategies written from the title only, no RCT filter, PubMed only.
+
+| Review | Found | Review | Found |
+|---|---|---|---|
+| CD000996 Inhaled corticosteroids, bronchiectasis | **6/6** | CD010558 Psychotherapy, treatment-resistant depression | 15/16 |
+| CD001261 Typhoid vaccines | **26/26** | CD010753 Antidepressants for insomnia | 20/21 |
+| CD004414 Occupational hand dermatitis prevention | **13/13** | CD011571 Antistreptococcal treatment, psoriasis | **6/6** |
+| CD006468 Anticoagulation, cancer + CVC | 13/15 | CD011768 Complementary feeding education | 29/31 |
+| CD007867 Hypocaloric nutrition, ICU | 14/15 | CD011977 Blue-light filtering IOLs | 37/38 |
+| CD009069 HPV vaccination | **6/6** | CD012069 Methylphenidate adverse events (non-randomised) | 268/327 |
+| CD009642 IV lidocaine, postoperative | 67/72 | CD012164 SEPS for venous ulcers | **3/3** |
+| CD010038 Parent education, childhood vaccination | 11/12 | CD012455 Melatonin in ICU | **5/5** |
+| CD010239 Oxygen for preterm resuscitation | 11/12 | CD012551 Chronic prostatitis/pelvic pain | 32/34 |
+| **Total** | **582/658 (88.4%)**, 100% in 7/18 | without CD012069 | **314/331 (94.9%)** |
+
+Most CD012069 misses are trial reports that say "medication management" without naming the drug (now a skill rule: add drug-class terms and trial acronyms for adverse-event reviews). About a third of the sampled misses are unrelated to the topic (for example a plant-genetics paper), which suggests label noise in the benchmark itself.
+
+**Adding citation searching** (`--cite`): seeds were chosen blindly, as up to three systematic reviews from our own results that predate the target review and best match its title. Adding their reference lists via OpenAlex raised intervention-review recall from **88.4% to 95.6% (629/658)**, recovering 45 of the 59 CD012069 misses. It added nothing to the diagnostic reviews: the one diagnostic topic with misses had no suitable systematic reviews to seed from.
+
+| Benchmark (26 Cochrane reviews) | PubMed strategy only | + backward citation searching |
+|---|---|---|
+| 8 diagnostic accuracy reviews | 137/147 (93.2%) | 137/147 (93.2%) |
+| 18 intervention reviews | 582/658 (88.4%) | 629/658 (95.6%) |
+| **All** | **719/805 (89.3%)** | **766/805 (95.2%)** |
 
 ### Deduplication: ASySD labelled test set (1,845 records, 584 true unique studies)
 

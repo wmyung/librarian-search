@@ -1,0 +1,16 @@
+{
+ "topic": "CD011977",
+ "title": "Blue-light filtering intraocular lenses (IOLs) for protecting macular health",
+ "written_from": "review title only (original Cochrane query not consulted)",
+ "pubmed": [
+  {
+   "q": "\"Lenses, Intraocular\"[Mesh] OR \"Lens Implantation, Intraocular\"[Mesh] OR \"intraocular lens\"[tiab] OR \"intraocular lenses\"[tiab] OR IOL[tiab] OR IOLs[tiab] OR \"cataract surgery\"[tiab] OR phacoemulsification[tiab]"
+  },
+  {
+   "q": "\"blue light\"[tiab] OR \"blue-light\"[tiab] OR \"blue filter\"[tiab] OR \"blue-filtering\"[tiab] OR \"blue light filtering\"[tiab] OR \"blue-blocking\"[tiab] OR \"blue blocking\"[tiab] OR \"yellow\"[tiab] OR \"yellow-tinted\"[tiab] OR \"chromophore\"[tiab] OR \"violet\"[tiab] OR \"UV-blocking\"[tiab] OR \"ultraviolet\"[tiab] OR AcrySof[tiab] OR \"SN60\"[tiab] OR \"Natural\"[tiab]"
+  },
+  {
+   "q": "#1 AND #2"
+  }
+ ]
+}

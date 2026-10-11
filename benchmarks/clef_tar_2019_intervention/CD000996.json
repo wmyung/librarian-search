@@ -1,0 +1,22 @@
+{
+ "topic": "CD000996",
+ "title": "Inhaled corticosteroids for bronchiectasis",
+ "written_from": "review title only (original Cochrane query not consulted)",
+ "pubmed": [
+  {
+   "q": "\"Adrenal Cortex Hormones\"[Mesh] OR \"Glucocorticoids\"[Mesh] OR \"Administration, Inhalation\"[Mesh] OR \"Nebulizers and Vaporizers\"[Mesh]"
+  },
+  {
+   "q": "corticosteroid*[tiab] OR steroid*[tiab] OR glucocorticoid*[tiab] OR beclomethasone[tiab] OR beclometasone[tiab] OR budesonide[tiab] OR fluticasone[tiab] OR ciclesonide[tiab] OR mometasone[tiab] OR flunisolide[tiab] OR triamcinolone[tiab] OR inhal*[tiab]"
+  },
+  {
+   "q": "#1 OR #2"
+  },
+  {
+   "q": "\"Bronchiectasis\"[Mesh] OR bronchiectas*[tiab]"
+  },
+  {
+   "q": "#3 AND #4"
+  }
+ ]
+}

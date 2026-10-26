@@ -1,12 +1,14 @@
 """litsearch command line.
 
-  librarian-search init DIR --request (FILE | Google Docs URL | .gdoc)   new request folder + strategy.json skeleton
+  librarian-search init DIR --request (FILE | Google Docs URL | .gdoc) [--profile systematic]   new request folder + strategy.json skeleton
   librarian-search mesh TERM ...                                          look up MeSH headings and entry terms
   librarian-search count DIR [--db pubmed]                                per-line hit counts for automatic sources (iterate)
   librarian-search run DIR [--db pubmed]                                  counts + retrieve records for the final line
+  librarian-search lint DIR                                               syntax checks of every search line (manual databases too)
+  librarian-search dropped DIR --from 6 --to 12                           PubMed records a later line loses (what an extra concept costs)
   librarian-search import DIR --db embase FILE [FILE ...]                 import manual-database exports (RIS/MEDLINE/WoS)
   librarian-search set-counts DIR --db embase 15862 4398 ...              record per-line counts for a manual database
-  librarian-search cite DIR [--seed DOI|PMID ...] [--direction both]      OpenAlex citation searching
+  librarian-search cite DIR [--seed DOI|PMID ...] [--direction both]      OpenAlex citation searching (comprehensive profile)
   librarian-search build DIR                                              deduplicate + deliverables (xlsx, EndNote, RIS, methods, letter draft)
   librarian-search validate DIR --known PMID|DOI ...               recall of a validation set + diagnosis
   librarian-search suggest DIR [--from-known]                      candidate terms missing from the strategy
@@ -26,6 +28,8 @@ from collections import Counter
 from pathlib import Path
 
 from . import net
+from .checks import (NOT_SYSTEMATIC, SYSTEMATIC_SOURCES, lint_strategy, noise_report, profile, profile_problems,
+                     systematic_gaps)
 from .classify import flags as compute_flags
 from .dedup import deduplicate
 from .endnote import write_library
@@ -80,8 +84,13 @@ def cmd_init(a):
         (root / "request.md").write_text(read_request(a.request).strip() + "\n", encoding="utf-8")
         _say(f"Request saved: {root / 'request.md'}")
     if not proj.strategy_path.exists():
-        proj.save(json.loads(json.dumps(SKELETON)))
-        _say(f"strategy.json skeleton created: {proj.strategy_path}")
+        st = json.loads(json.dumps(SKELETON))
+        st["profile"] = a.profile
+        if a.profile == "systematic":
+            st["databases"].insert(5, {"id": "psycinfo", "platform": "", "lines": [{"q": "", "results": None}], "final": None})
+            st["citation"] = {"seeds": [], "platform": "scopus"}
+        proj.save(st)
+        _say(f"strategy.json skeleton created ({a.profile} profile): {proj.strategy_path}")
     print(root)
 
 
@@ -128,6 +137,7 @@ def cmd_count(a, fetch=False):
             save_jsonl(proj.records_dir / f"{db}.jsonl", recs)
             e["search_date"] = today()
             _say(f"  -> retrieved {len(recs):,} records (final line #{fi + 1}: {res[fi]['count']:,})")
+    _report_lint(st)
     proj.runs_dir.mkdir(parents=True, exist_ok=True)
     counts_path.write_text(json.dumps(counts, ensure_ascii=False, indent=1), encoding="utf-8")
     if fetch:
@@ -139,6 +149,32 @@ def cmd_run(a):
     cmd_count(a, fetch=True)
 
 
+def _report_lint(st) -> int:
+    issues = lint_strategy(st)
+    for db, n, msg in issues:
+        _say(f"  ! {db_info(db)['short']} #{n}: {msg}")
+    return len(issues)
+
+
+def cmd_lint(a):
+    st = Project(Path(a.dir).expanduser()).load()
+    if not _report_lint(st):
+        _say("No syntax issues found.")
+
+
+def cmd_dropped(a):
+    """PubMed records matched by line --from but not by line --to: what a later concept (AND) removes."""
+    st = Project(Path(a.dir).expanduser()).load()
+    e = next((x for x in st.get("databases", []) if x["id"] == "pubmed"), None)
+    if not e:
+        raise SystemExit("No PubMed block in strategy.json")
+    q = f"({expand_line(e['lines'], a.from_line - 1)}) NOT ({expand_line(e['lines'], a.to_line - 1)})"
+    n, _ = pubmed.count(q)
+    _say(f"PubMed #{a.from_line} NOT #{a.to_line}: {n:,} records lost by the later line(s)")
+    for pmid, year, title in pubmed.titles(q, a.sample):
+        print(f"{pmid}\t{year}\t{title}")
+
+
 # ------------------------------------------------------------------ import / set-counts
 def cmd_import(a):
     proj = Project(Path(a.dir).expanduser())
@@ -148,6 +184,8 @@ def cmd_import(a):
         got = parse_file(Path(f).expanduser(), a.db)
         _say(f"  {f}: {len(got):,} records")
         recs.extend(got)
+    for problem in profile_problems(st, [a.db]):
+        raise SystemExit(f"Systematic profile: {problem}. Set \"allow_nonstandard_sources\": true to override.")
     dest = proj.records_dir / f"{a.db}.jsonl"
     if a.append:
         recs = load_jsonl(dest) + recs
@@ -161,6 +199,14 @@ def cmd_import(a):
     _say(f"[{db_info(a.db)['name']}] imported {len(recs):,} records" + (f" (final search line: {expected:,})" if expected else ""))
     if expected and abs(expected - len(recs)) > 0:
         _say("  ! Imported count differs from the final search count. Check for incomplete exports (e.g., per-export limits).")
+    nr = noise_report(st, recs)
+    if nr and nr["share"] > 0.2 and not a.db.startswith("citation"):
+        _say(f"  ! {nr['no_concept_term']:,} of {nr['records']:,} records ({nr['share']:.0%}) contain no term of a concept "
+             f"({', '.join(f'{k} {v}' for k, v in nr['by_concept'].items())}; languages {nr['languages']}; "
+             f"{nr['without_abstract']} without abstract). Check the search lines for unquoted phrases or noisy "
+             f"acronyms (librarian-search lint). Examples:")
+        for t in nr["sample_titles"][:5]:
+            _say(f"      - {t[:110]}")
 
 
 def cmd_set_counts(a):
@@ -181,6 +227,9 @@ def cmd_set_counts(a):
 def cmd_cite(a):
     proj = Project(Path(a.dir).expanduser())
     st = proj.load()
+    for problem in profile_problems(st, ["citation"]):
+        raise SystemExit(f"Systematic profile: {problem}. Export the references and citing documents of the seeds "
+                         f"from Scopus or Web of Science and import them with --db citation_scopus / citation_wos.")
     cfg = st.setdefault("citation", {})
     seeds = a.seed or cfg.get("seeds", [])
     if not seeds:
@@ -274,6 +323,13 @@ def cmd_build(a):
     proj = Project(Path(a.dir).expanduser())
     st = proj.load()
     files, db_order, allrecs, retrieved, unique, dups = _load_all(proj, st)
+    problems = profile_problems(st, db_order)
+    if problems:
+        raise SystemExit("Systematic profile: these sources are not reportable; remove their records/ files or set "
+                         "\"allow_nonstandard_sources\": true:\n  " + "\n  ".join(problems))
+    for gap in systematic_gaps(st, db_order):
+        _say(f"  ! Systematic profile: {gap}")
+    _report_lint(st)
     contributed = Counter(r["db"] for r in unique)
     fl = {r["uid"]: compute_flags(r) for r in unique}
     flag_counts = Counter(k for f in fl.values() for k, v in f.items() if v)
@@ -291,6 +347,9 @@ def cmd_build(a):
         "n_unique": len(unique), "n_dups": len(dups), "total_retrieved": len(allrecs),
         "search_date": st.get("search_date") or today(), "line_counts": line_counts, "final_index": fidx,
         "citation_log": cit.get("seeds", []), "citation_date": cit.get("date", ""),
+        "profile": profile(st), "systematic_gaps": systematic_gaps(st, db_order),
+        "nonstandard_used": [NOT_SYSTEMATIC.get(d, db_info(d)["name"]).split(" (")[0] for d in db_order
+                             if d.split(":")[0] not in SYSTEMATIC_SOURCES],
     }
     ctx["overlap"] = overlap(unique, db_order)
     if getattr(a, "previous", None):
@@ -393,7 +452,9 @@ def cmd_status(a):
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="librarian-search", description="Medical-librarian-style systematic literature search")
     sp = ap.add_subparsers(dest="cmd", required=True)
-    p = sp.add_parser("init"); p.add_argument("dir"); p.add_argument("--request"); p.set_defaults(f=cmd_init)
+    p = sp.add_parser("init"); p.add_argument("dir"); p.add_argument("--request")
+    p.add_argument("--profile", choices=["comprehensive", "systematic"], default="comprehensive",
+                   help="systematic: only sources reportable in a systematic review (no OpenAlex)"); p.set_defaults(f=cmd_init)
     p = sp.add_parser("mesh"); p.add_argument("terms", nargs="+"); p.set_defaults(f=cmd_mesh)
     for name, fn in (("count", cmd_count), ("run", cmd_run)):
         p = sp.add_parser(name); p.add_argument("dir"); p.add_argument("--db", nargs="*"); p.set_defaults(f=fn)
@@ -412,6 +473,10 @@ def main(argv=None):
     p = sp.add_parser("suggest"); p.add_argument("dir"); p.add_argument("--top", type=int, default=30)
     p.add_argument("--from-known", action="store_true"); p.set_defaults(f=cmd_suggest)
     p = sp.add_parser("status"); p.add_argument("dir"); p.set_defaults(f=cmd_status)
+    p = sp.add_parser("lint"); p.add_argument("dir"); p.set_defaults(f=cmd_lint)
+    p = sp.add_parser("dropped"); p.add_argument("dir"); p.add_argument("--from", dest="from_line", type=int, required=True)
+    p.add_argument("--to", dest="to_line", type=int, required=True); p.add_argument("--sample", type=int, default=20)
+    p.set_defaults(f=cmd_dropped)
     a = ap.parse_args(argv)
     a.f(a)
 

@@ -14,7 +14,19 @@ Example concepts: intervention (vitamin D) AND condition (fracture).
 | Proximity | `"hip fracture"[tiab:~3]` (phrases only, no truncation) | `(hip adj3 fractur*).ti,ab.` | `(hip NEAR/3 fractur*):ab,ti` | `(hip near/3 fractur*):ti,ab,kw` | `hip NEAR/3 fractur*` | `"hip fracture"~3` |
 | Line references | `#1 OR #2` (expanded by litsearch) | `1 or 2` | `#1 OR #2` | `#1 OR #2` | `#1 OR #2` | `#1 OR #2` (expanded by litsearch) |
 
+PsycInfo and CINAHL (state the platform in strategy.json `"platform"`):
+
+| Feature | Ovid PsycInfo | EBSCOhost (PsycInfo, CINAHL) |
+|---|---|---|
+| Thesaurus | `exp Temperament/` | `DE "Temperament"` (PsycInfo; tick Explode in the thesaurus to include narrower terms), `(MH "Temperament+")` (CINAHL, exploded) |
+| Title/abstract | `term.ti,ab.` | `TI term OR AB term` (`TX` = all text, noisy) |
+| Phrase | `"hip fracture".ti,ab.` (adjacent words are already a phrase) | `"hip fracture"` (**bare words are ANDed**) |
+| Proximity | `(hip adj3 fractur*).ti,ab.` | `hip N3 fractur*` (any order), `W3` (in order) |
+| Line references | `1 or 2` | `S1 OR S2` |
+
 ## Pitfalls
+- **Unquoted phrases**: on EBSCOhost, Cochrane, Embase.com, WoS, Scopus and Europe PMC, bare adjacent words are ANDed and single letters are stop words. `TEMPS A` searches `TEMPS`, which also matches French "temps". Quote every phrase (`"TEMPS-A"` or `"TEMPS A"`); `LS lint` flags this.
+- **Adjective + noun**: an exact phrase misses coordinated forms ("cyclothymic and irritable temperaments"); use proximity (`adj3` / `NEAR/3` / `N3` / `[tiab:~3]`).
 - **PubMed**: `[tiab:~N]` proximity works only on quoted phrases and cannot be truncated, so list the variants (`"hip fracture"[tiab:~3] OR "hip fractures"[tiab:~3] …`). Chemical names containing hyphens or brackets often return 0 with `[tiab]`; that is expected. Check MeSH tree positions with `litsearch mesh` before choosing a heading versus its parent.
 - **Europe PMC**: **always wrap each fielded clause in parentheses.** Without them, a fielded clause after `OR` (`TITLE_ABS:(a) OR MESH:"b"`) leaks into full-text search and inflates counts; write `(TITLE_ABS:(a)) OR (MESH:"b")`. Unfielded terms search the full text. Hyphenated acronyms (e.g. `"SF-36"`) are split into tokens and can match unrelated or non-English text; AND the acronym with a concept word, and compare the count with PubMed. Preprints are included (SRC:PPR).
 - **ClinicalTrials.gov**: a line is `{"query.cond": "...", "query.intr": "..."}` (separate condition and intervention fields, automatic synonym expansion). A plain string is used as `query.term`.

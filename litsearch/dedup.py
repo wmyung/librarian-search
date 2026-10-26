@@ -4,7 +4,7 @@ Records are linked when they share a PMID; when they share a DOI and their title
 compatible (conference supplements often carry one DOI for a whole issue of abstracts); or when their
 normalised titles match (exactly, or one is a >=40-character prefix of the other, e.g. Embase titles carrying
 an appended translation) with publication years within one year, a compatible first author, and no
-conflicting first page. Benchmarked on the ASySD labelled test set (benchmarks/dedup_asysd.py). Each cluster keeps the record from the
+conflicting first page, DOI or PMID. Benchmarked on the ASySD labelled test set (benchmarks/dedup_asysd.py). Each cluster keeps the record from the
 highest-priority database (typical librarian order: MEDLINE > Embase > Cochrane > WoS > ...); the rest
 become duplicates, mirroring EndNote's "move duplicates to trash" workflow.
 """
@@ -114,6 +114,8 @@ def deduplicate(records: list[dict], priority: list[str]) -> tuple[list[dict], l
                 if ra["doi"] and rb["doi"] and ra["doi"] != rb["doi"]:
                     # different DOIs: only Embase-style conference abstract vs article may still match; keep apart
                     continue
+                if ra["pmid"] and rb["pmid"] and ra["pmid"] != rb["pmid"]:
+                    continue   # two PubMed records, e.g. an article and its erratum or a reprint under the same title
                 ka, kb = tk[a], tk[b]
                 same = ka == kb or (min(len(ka), len(kb)) >= 40 and (ka.startswith(kb) or kb.startswith(ka)))
                 if same and _years_ok(ra["year"], rb["year"]) and _authors_ok(ra, rb) and _pages_ok(ra, rb):

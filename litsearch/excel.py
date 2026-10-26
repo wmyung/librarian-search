@@ -8,7 +8,7 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
 from .classify import FLAGS
-from .project import db_info
+from .project import CITATION_SOURCES, db_info
 from .sources import ctgov
 
 THIN = Side(style="thin", color="999999")
@@ -42,7 +42,7 @@ def build_workbook(path: Path, strategy: dict, ctx: dict) -> Path:
     ws = wb.active
     ws.title = "Search strategy"
     dbs = ctx["db_order"]
-    names = [db_info(d)["name"] for d in dbs if d != "citation"]
+    names = [db_info(d)["name"] for d in dbs if d not in CITATION_SOURCES]
     _cell(ws, "A1", "Databases: " + ", ".join(names), bold=True, border=False, align=Alignment(vertical="top"))
     _cell(ws, "F1", "Search date", bold=True, fill=SUB)
     dates = sorted({e.get("search_date") or ctx["search_date"] for e in strategy.get("databases", [])

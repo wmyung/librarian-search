@@ -1,6 +1,6 @@
 [project]
 name = "librarian-search"
-version = "0.2.0"
+version = "0.3.0"
 description = "Medical-librarian-style systematic literature search: line-by-line strategies, multi-database retrieval, deduplication, native EndNote library, PRISMA-S methods text and reply letter"
 readme = "README.md"
 license = "MIT"

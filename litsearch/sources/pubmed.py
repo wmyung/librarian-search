@@ -66,6 +66,18 @@ def fetch(query: str) -> list[dict]:
     return recs
 
 
+def titles(query: str, n: int = 20) -> list[tuple[str, str, str]]:
+    """(PMID, year, title) of the first n records, most recent first (for reviewing what a line adds or loses)."""
+    d = net.post_json(EUTILS + "esearch.fcgi", {**_base(), "db": "pubmed", "term": query, "retmode": "json", "retmax": n},
+                      min_interval=_interval())["esearchresult"]
+    ids = d.get("idlist") or []
+    if not ids:
+        return []
+    s = net.post_json(EUTILS + "esummary.fcgi", {**_base(), "db": "pubmed", "id": ",".join(ids), "retmode": "json"},
+                      min_interval=_interval())["result"]
+    return [(i, (s.get(i, {}).get("pubdate") or "")[:4], s.get(i, {}).get("title", "")) for i in ids]
+
+
 def mesh_lookup(term: str, limit: int = 8) -> list[dict]:
     """Find MeSH descriptors for a term, with tree numbers and entry terms (for strategy building)."""
     d = net.get_json(EUTILS + "esearch.fcgi", {**_base(), "db": "mesh", "term": term, "retmode": "json", "retmax": limit},

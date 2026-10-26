@@ -136,3 +136,54 @@ def test_retracted_flag():
     from litsearch.classify import flags
     r = new_record("pubmed", title="Some trial", pubtypes=["Journal Article", "Retracted Publication"])
     assert flags(r)["retracted"]
+
+
+def test_dedup_conflicting_pmids_not_merged():
+    a = new_record("pubmed", title="Confirmation of the factorial structure of the short version of the TEMPS-A",
+                   authors=["Doe, A."], year="2017", pmid="111")
+    b = new_record("pubmed", title="Confirmation of the factorial structure of the short version of the TEMPS-A",
+                   authors=["Doe, A."], year="2017", pmid="222")
+    unique, dups = deduplicate([a, b], ["pubmed"])
+    assert len(unique) == 2 and not dups
+
+
+def test_lint_flags_unquoted_phrases_and_wrong_operators():
+    from litsearch.checks import lint_strategy
+    st = {"databases": [
+        {"id": "psycinfo", "platform": "EBSCOhost", "lines": [{"q": "XB (TEMPS A)"}, {"q": 'XB ("TEMPS-A")'}]},
+        {"id": "cochrane", "lines": [{"q": "(Memphis Pisa and San Diego):ti,ab,kw"}, {"q": "(affective NEAR/3 temperament*):ti,ab,kw"}]},
+        {"id": "ovid_medline", "lines": [{"q": '"TEMPS A".ti,ab.'}, {"q": "#1 or #2"}]},
+        {"id": "embase", "lines": [{"q": "(affective adj3 temperament*):ti,ab"}, {"q": "'temps a':ti,ab"}]},
+        {"id": "cinahl", "lines": [{"q": "TI temperament OR AB temperament"}, {"q": 'TI "affective temperament"'}]},
+    ]}
+    got = {}
+    for d, n, m in lint_strategy(st):
+        got[(d, n)] = got.get((d, n), "") + m
+    assert ("psycinfo", 1) in got and "single-letter" in got[("psycinfo", 1)]
+    assert ("psycinfo", 2) not in got
+    assert ("cochrane", 1) in got and "unquoted" in got[("cochrane", 1)]
+    assert ("cochrane", 2) not in got
+    assert ("ovid_medline", 1) not in got and ("ovid_medline", 2) in got
+    assert ("embase", 1) in got and "adjN" in got[("embase", 1)]
+    assert ("embase", 2) not in got
+    assert ("cinahl", 1) not in got and ("cinahl", 2) not in got
+
+
+def test_noise_report_and_profiles():
+    from litsearch.checks import noise_report, profile_problems, systematic_gaps
+    st = {"profile": "systematic", "concepts": [{"name": "TEMPS-A", "terms": ["TEMPS-A", "affective temperament*",
+                                                                              "dysthymic/depressive temperament"]}]}
+    recs = [new_record("psycinfo", title="Le temps est désormais compté", language="fre"),
+            new_record("psycinfo", title="Affective temperaments in bipolar disorder"),
+            new_record("psycinfo", title="TEMPS A validation", abstract="The TEMPS-A was used.")]
+    nr = noise_report(st, recs)
+    assert nr["no_concept_term"] == 1 and nr["languages"] == {"fre": 1}
+    assert profile_problems(st, ["pubmed", "citation"]) and not profile_problems(st, ["pubmed", "citation_scopus"])
+    assert not profile_problems({"profile": "comprehensive"}, ["citation"])
+    st2 = {"concepts": [{"name": "TEMPS-A", "terms": ["TEMPS-A"]}, {"name": "affective temperament",
+                                                                    "terms": ["affective temperament*"]}],
+           "noise_groups": [["TEMPS-A", "affective temperament"]]}
+    assert noise_report(st2, recs[1:])["no_concept_term"] == 0
+    assert noise_report({**st2, "noise_groups": None}, recs[1:])["no_concept_term"] == 2
+    gaps = systematic_gaps(st, ["pubmed"])
+    assert any("Embase" in g for g in gaps) and any("registry" in g for g in gaps)

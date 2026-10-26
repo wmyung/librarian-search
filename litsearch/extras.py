@@ -16,7 +16,7 @@ from pathlib import Path
 from xml.sax.saxutils import escape
 
 from .dedup import deduplicate
-from .project import db_info, expand_line
+from .project import CITATION_SOURCES, db_info, expand_line
 from .records import norm_doi
 
 
@@ -106,9 +106,9 @@ def write_asreview_csv(path: Path, unique: list[dict], relevant_uids: set[int]) 
 
 # ------------------------------------------------------------------ PRISMA 2020 flow (identification)
 def prisma_svg(ctx: dict) -> str:
-    dbs = [d for d in ctx["db_order"] if d not in ("ctgov", "ictrp", "citation")]
+    dbs = [d for d in ctx["db_order"] if d not in ("ctgov", "ictrp") + CITATION_SOURCES]
     regs = [d for d in ctx["db_order"] if d in ("ctgov", "ictrp")]
-    other = [d for d in ctx["db_order"] if d == "citation"]
+    other = [d for d in ctx["db_order"] if d in CITATION_SOURCES]
     n = lambda ds: sum(ctx["retrieved"].get(d, 0) for d in ds)
     db_lines = [f"Databases (n = {n(dbs):,})"] + [f"  {db_info(d)['name']} (n = {ctx['retrieved'][d]:,})" for d in dbs]
     if regs:

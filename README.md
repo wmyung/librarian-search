@@ -118,7 +118,9 @@ LS="librarian-search"          # or: uv run --project ~/librarian-search librari
 $LS init projects/vitd --request "Vitamin D supplementation and fracture prevention: narrative review"
 cp examples/vitamin_d_fracture_strategy.json projects/vitd/strategy.json
 $LS mesh "cholecalciferol"                 # MeSH headings + entry terms
-$LS count projects/vitd                    # per-line hit counts (iterate on the strategy)
+$LS count projects/vitd                    # per-line hit counts + syntax lint (iterate on the strategy)
+$LS dropped projects/vitd --from 3 --to 7  # what the AND with a second concept removes (sample titles)
+$LS lint projects/vitd                     # quoting, stop words and wrong-platform operators in every line
 $LS run projects/vitd                      # retrieve records from automatic sources
 $LS validate projects/vitd --known 12345678 10.xxxx/known-study   # recall of known relevant studies + diagnosis
 $LS suggest projects/vitd --from-known     # frequent MeSH/keywords the strategy does not cover yet
@@ -138,6 +140,19 @@ With the skill installed, just tell Claude Code: *"Do a literature search for my
 
 ---
 
+## Search profiles: comprehensive or systematic
+
+| | `comprehensive` (default) | `systematic` (`init --profile systematic`) |
+|---|---|---|
+| Purpose | Best recall for narrative and scoping reviews | Searches a journal accepts under PRISMA-S for a systematic review or meta-analysis |
+| Databases and registries | All | All bibliographic databases and registries (PubMed, Ovid, Embase, Cochrane, WoS, Scopus, PsycInfo, CINAHL, KoreaMed, KMbase, Europe PMC, ClinicalTrials.gov, ICTRP) |
+| Citation searching | OpenAlex (`cite`) | Scopus or Web of Science exports (`import --db citation_scopus` / `citation_wos`); OpenAlex is refused |
+| Checks | | `build` warns when MEDLINE, Embase, CENTRAL, a trial registry or a planned subject database is missing |
+
+No AI search service or relevance ranking decides which records are kept in either profile. Every record comes from a Boolean query or a citation index and stays in the library.
+
+---
+
 ## Databases
 
 | id | Mode | How it is reported |
@@ -145,7 +160,8 @@ With the skill installed, just tell Claude Code: *"Do a literature search for my
 | `pubmed` | automatic (NCBI E-utilities) | MEDLINE via PubMed |
 | `europepmc` | automatic (REST API) | Europe PMC |
 | `ctgov` | automatic (API v2) | ClinicalTrials.gov (trial registry) |
-| `citation` | automatic (OpenAlex) | backward/forward citation searching using OpenAlex |
+| `citation` | automatic (OpenAlex) | backward/forward citation searching using OpenAlex (comprehensive profile only) |
+| `citation_scopus`, `citation_wos` | manual: export references and citing documents of the seed articles | citation searching in Scopus / Web of Science (both profiles) |
 | `embase`, `cochrane`, `wos`, `scopus`, `psycinfo`, `cinahl`, `ovid_medline`, `koreamed`, `kmbase`, `ictrp` | manual: search on the vendor platform through your institution, export RIS / MEDLINE / WoS plain text, then `import` | official database and platform names |
 
 Citation searching requires an OpenAlex API key (`OPENALEX_API_KEY`). `NCBI_API_KEY` is optional (faster PubMed requests).
@@ -234,13 +250,17 @@ Benchmarks are only useful if they change the code. These did:
 - **Diagnostic accuracy searches.** Every study missed in the procalcitonin/CRP review failed the index-test concept, because abstracts often omit the index test. The skill now ORs reference-standard terms into the index-test concept and warns against population concepts that abstracts may not state.
 - **Adverse-event searches.** Most misses in the methylphenidate review were trial reports that say "medication management" without naming the drug. The skill now adds drug-class terms and trial acronyms.
 - **Validation sets are mandatory.** `validate` reports, for every missed known study, whether it is in PubMed and which concept line lost it, so a gap is fixed before the search is delivered.
+- **Single-concept instrument reviews (TEMPS-A, against a librarian's 5,599-record search).** ANDing "mood disorders" with the TEMPS-A concept lost 119 PubMed records, including standardisation, validation and suicide studies. The librarian searched the instrument concept alone, which in PubMed is about 1,000 records. The skill now starts instrument-centred reviews with the instrument concept alone, and `dropped` shows what each extra concept removes.
+- **Manual-database syntax.** On EBSCOhost the librarian's unquoted `XB (TEMPS A)` matched the French word "temps": 87% of 3,578 PsycInfo records contained no TEMPS or temperament term. `lint` flags unquoted phrases, bare single letters and operators from another platform. `import` reports the share of records without a concept term.
+- **Proximity for adjective + noun terms.** With exact phrases, the PubMed TEMPS-A concept missed 257 of the librarian's Ovid `adj3` MEDLINE records. `[tiab:~3]` proximity recovered 118 of them, 67 with TEMPS or temperament in the title. None of the 139 remaining misses had TEMPS or affective temperament in the title.
+- **Erratum merging.** Records with the same title but different PMIDs, such as an article and its erratum, are no longer merged.
 - **Robustness.** OpenAlex lookups fall back to the DOI recorded in PubMed when a PMID is not linked, and API responses with control characters no longer break parsing.
 
 ---
 
 ## Deduplication
 
-Records are linked by PMID or NCT number; by DOI when titles and first pages are also compatible (conference supplements often share one DOI); or by normalised title (exact, or a ≥40-character prefix match for titles with appended translations) + publication year ±1 + compatible first author + no conflicting first page. The record from the highest-priority source is kept (default MEDLINE > Embase > Cochrane > WoS > …, configurable). Empty fields such as abstract or DOI are filled in from its duplicates. Every removed record stays in the EndNote Trash and in the `Duplicates` sheet, with its match basis.
+Records are linked by PMID or NCT number; by DOI when titles and first pages are also compatible (conference supplements often share one DOI); or by normalised title (exact, or a ≥40-character prefix match for titles with appended translations) + publication year ±1 + compatible first author + no conflicting first page, DOI or PMID. The record from the highest-priority source is kept (default MEDLINE > Embase > Cochrane > WoS > …, configurable). Empty fields such as abstract or DOI are filled in from its duplicates. Every removed record stays in the EndNote Trash and in the `Duplicates` sheet, with its match basis.
 
 ---
 
@@ -266,7 +286,7 @@ librarian-search adapts good ideas from established evidence-synthesis tools:
 - **Search and retrieval only.** Screening and data extraction are out of scope; hand the RIS or ASReview file to a screening tool.
 - **Benchmarks cover PubMed plus citation searching.** Embase, Cochrane and Web of Science add records in real searches but are not part of the automated benchmark, because they require institutional access.
 - **Strategy quality depends on the model.** The skill writes the strategy, so quality can vary by topic. That is why validation-set checks are part of the workflow, and why a librarian's PRESS review is still recommended for systematic reviews.
-- **Citation searching requires an OpenAlex API key.**
+- **Citation searching requires an OpenAlex API key** in the comprehensive profile. In the systematic profile, it requires Scopus or Web of Science access.
 
 ---
 
@@ -277,7 +297,8 @@ librarian-search adapts good ideas from established evidence-synthesis tools:
 | "Do a literature search / find prior studies on X" | Load the `librarian-search` skill → `init` → write `strategy.json` → `count` → `run` |
 | "These papers must be found" | `validate --known …`; fix the concept line it reports, rerun, validate again |
 | "Here are my Embase / Cochrane / WoS exports" | `set-counts` and `import` for each source |
-| "Also check references and citing papers" | `cite` with 2–5 key trials or reviews; add `citation.filter` if off-topic |
+| "Also check references and citing papers" | `cite` with 2–5 key trials or reviews; add `citation.filter` if off-topic (systematic profile: Scopus/WoS exports → `import --db citation_scopus`) |
+| "This is for a systematic review / only tools I can report" | `init --profile systematic` |
 | "Update last year's search" | `build --previous <old export>` |
 | "Give me the package" | `build` → fill `letter_draft.md` → `letter.md` → `build` → send the zip |
 

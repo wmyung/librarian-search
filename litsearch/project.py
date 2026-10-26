@@ -23,9 +23,12 @@ DATABASES = {
     "europepmc":    {"name": "Europe PMC", "short": "Europe PMC", "platform": "Europe PMC (EMBL-EBI) REST API", "mode": "auto"},
     "ctgov":        {"name": "ClinicalTrials.gov", "short": "CT.gov", "platform": "ClinicalTrials.gov API v2 (U.S. NLM)", "mode": "auto"},
     "citation":     {"name": "Citation searching", "short": "Citation", "platform": "OpenAlex (backward and forward citation searching)", "mode": "auto"},
+    "citation_scopus": {"name": "Citation searching (Scopus)", "short": "Citation (Scopus)", "platform": "Scopus (Elsevier): references and citing documents of key articles", "mode": "manual"},
+    "citation_wos": {"name": "Citation searching (Web of Science)", "short": "Citation (WoS)", "platform": "Web of Science Core Collection (Clarivate): cited references and citing articles of key articles", "mode": "manual"},
 }
 DEFAULT_PRIORITY = ["pubmed", "ovid_medline", "embase", "cochrane", "wos", "scopus", "psycinfo", "cinahl",
-                    "koreamed", "kmbase", "europepmc", "ctgov", "ictrp", "citation"]
+                    "koreamed", "kmbase", "europepmc", "ctgov", "ictrp", "citation_scopus", "citation_wos", "citation"]
+CITATION_SOURCES = ("citation", "citation_scopus", "citation_wos")
 
 
 def db_info(db_id: str) -> dict:
@@ -101,6 +104,7 @@ def final_index(entry: dict) -> int:
 SKELETON = {
     "title": "",
     "review_type": "narrative review",
+    "profile": "comprehensive",
     "objective": "",
     "concepts": [
         {"name": "", "description": "", "terms": []}

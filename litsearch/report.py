@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 from .classify import FLAGS
-from .project import db_info
+from .project import CITATION_SOURCES, db_info
 
 
 def fmt_date_en(d: str) -> str:
@@ -24,19 +24,38 @@ def db_dates(strategy: dict, ctx: dict) -> dict:
     return out
 
 
+def citation_runs(strategy: dict, ctx: dict) -> list[dict]:
+    """Citation searching per platform: OpenAlex (LS cite) and exports imported from Scopus / Web of Science."""
+    runs = []
+    dates = db_dates(strategy, ctx)
+    seeds = [str(s) for s in (strategy.get("citation") or {}).get("seeds") or []]
+    if ctx.get("citation_log"):
+        runs.append({"platform": "OpenAlex", "seeds": len([s for s in ctx["citation_log"] if not s.get("error")]),
+                     "seed_ids": [], "date": ctx.get("citation_date", "")})
+    for d, plat in (("citation_scopus", "Scopus"), ("citation_wos", "Web of Science Core Collection")):
+        if d in ctx["db_order"]:
+            runs.append({"platform": plat, "seeds": len(seeds), "seed_ids": seeds, "date": dates.get(d, ctx["search_date"])})
+    return runs
+
+
+def _cit_sentence(r: dict) -> str:
+    n = f"{r['seeds']} key article{'s' if r['seeds'] != 1 else ''}" if r["seeds"] else "key articles"
+    ids = f" (seeds: {', '.join(r['seed_ids'])})" if r.get("seed_ids") else ""
+    return f"backward (reference lists) and forward (citing articles) citation searching of {n}{ids} in {r['platform']} ({r['date']})"
+
+
 def prisma_s(strategy: dict, ctx: dict) -> list[tuple]:
-    dbs = [d for d in ctx["db_order"] if d not in ("ctgov", "ictrp", "citation")]
+    dbs = [d for d in ctx["db_order"] if d not in ("ctgov", "ictrp") + CITATION_SOURCES]
     regs = [d for d in ctx["db_order"] if d in ("ctgov", "ictrp")]
     dates = db_dates(strategy, ctx)
-    cit = ctx.get("citation_log") or []
+    cit = citation_runs(strategy, ctx)
     order = " > ".join(db_info(d)["short"] for d in ctx["db_order"])
     return [
         (1, "Database name", "; ".join(f"{db_info(d)['name']} ({db_info(d)['platform']})" for d in dbs)),
         (2, "Multi-database searching", "Each database was searched separately (no simultaneous multi-database searching)."),
         (3, "Study registries", "; ".join(db_info(d)["platform"] for d in regs) or "Not searched"),
         (4, "Online resources and browsing", strategy.get("other_sources", "Not applicable")),
-        (5, "Citation searching", (f"Backward (reference lists) and forward (citing articles) citation searching of {len(cit)} key "
-                                   f"articles using OpenAlex ({ctx.get('citation_date', '')})") if cit
+        (5, "Citation searching", "; ".join(_cit_sentence(r)[0].upper() + _cit_sentence(r)[1:] for r in cit) if cit
          else "Not performed (recommended once key trials and systematic reviews are identified)"),
         (6, "Contacts", strategy.get("contacts", "Not applicable")),
         (7, "Other methods", strategy.get("other_methods") or (
@@ -49,7 +68,7 @@ def prisma_s(strategy: dict, ctx: dict) -> list[tuple]:
         (12, "Updates", strategy.get("updates") or (
             f"Update search: {len(ctx['previous_uids'])} records matched a previous search export and were marked as previously screened"
             if ctx.get("n_previous_records") else "Not applicable")),
-        (13, "Dates of searches", "; ".join(f"{db_info(d)['short']}: {dates.get(d, ctx['search_date'])}" for d in ctx["db_order"] if d != "citation")),
+        (13, "Dates of searches", "; ".join(f"{db_info(d)['short']}: {dates.get(d, ctx['search_date'])}" for d in ctx["db_order"] if d not in CITATION_SOURCES)),
         (14, "Peer review", strategy.get("peer_review", "No formal peer review of the search strategy (PRESS); librarian review recommended if required")),
         (15, "Total records", "; ".join(f"{db_info(d)['short']} {ctx['retrieved'].get(d, 0)}" for d in ctx["db_order"]) +
          f" (total {ctx['total_retrieved']})"),
@@ -61,7 +80,7 @@ def prisma_s(strategy: dict, ctx: dict) -> list[tuple]:
 
 def methods_en(strategy: dict, ctx: dict) -> str:
     dates = db_dates(strategy, ctx)
-    dbs = [d for d in ctx["db_order"] if d not in ("ctgov", "ictrp", "citation", "europepmc")]
+    dbs = [d for d in ctx["db_order"] if d not in ("ctgov", "ictrp", "europepmc") + CITATION_SOURCES]
     phr = {"pubmed": "MEDLINE (via PubMed)", "ovid_medline": "MEDLINE (via Ovid)", "embase": "Embase (via Embase.com)",
            "cochrane": "the Cochrane Library (Cochrane Database of Systematic Reviews and CENTRAL)",
            "wos": "Web of Science Core Collection", "scopus": "Scopus", "psycinfo": "APA PsycInfo", "cinahl": "CINAHL"}
@@ -69,11 +88,11 @@ def methods_en(strategy: dict, ctx: dict) -> str:
     if "europepmc" in ctx["db_order"]:
         names.append("Europe PMC")
     lst = ", ".join(names[:-1]) + (", and " if len(names) > 2 else " and ") + names[-1] if len(names) > 1 else (names[0] if names else "")
-    uniq_dates = sorted({dates.get(d, ctx["search_date"]) for d in ctx["db_order"] if d != "citation"})
+    uniq_dates = sorted({dates.get(d, ctx["search_date"]) for d in ctx["db_order"] if d not in CITATION_SOURCES}) or [ctx["search_date"]]
     when = fmt_date_en(uniq_dates[0]) if len(uniq_dates) == 1 else "between " + fmt_date_en(uniq_dates[0]) + " and " + fmt_date_en(uniq_dates[-1])
     concepts = [c for c in strategy.get("concepts", []) if c.get("name")]
     cpt = "; ".join(f"{c['name']} ({', '.join(c.get('terms', [])[:12])})" for c in concepts)
-    p = [f"A comprehensive literature search was conducted in {lst} from inception to {when}."]
+    p = [f"A comprehensive literature search was conducted in {lst} from inception to {when}."] if lst else []
     if cpt:
         vocab = [v for d, v in (("pubmed", "MeSH"), ("ovid_medline", "MeSH"), ("embase", "Emtree"), ("cochrane", "MeSH"),
                                 ("psycinfo", "APA Thesaurus"), ("cinahl", "CINAHL Headings")) if d in ctx["db_order"]]
@@ -84,10 +103,12 @@ def methods_en(strategy: dict, ctx: dict) -> str:
     if any(d in ctx["db_order"] for d in ("ctgov", "ictrp")):
         regs = [("ClinicalTrials.gov" if d == "ctgov" else "the WHO ICTRP") for d in ctx["db_order"] if d in ("ctgov", "ictrp")]
         p.append(f"Ongoing and unpublished studies were sought in {' and '.join(regs)}.")
+    for r in citation_runs(strategy, ctx):
+        n = f"{r['seeds']} key article{'s' if r['seeds'] != 1 else ''}" if r["seeds"] else "key articles"
+        ids = f" ({', '.join(r['seed_ids'])})" if r.get("seed_ids") else ""
+        p.append(f"Backward and forward citation searching of {n}{ids} was performed in {r['platform']}"
+                 f" on {fmt_date_en(r['date'] or ctx['search_date'])}.")
     if ctx.get("citation_log"):
-        n = len([s for s in ctx["citation_log"] if not s.get("error")])
-        p.append(f"Backward and forward citation searching of {n} key article{'s' if n != 1 else ''} was performed using OpenAlex"
-                 f" on {fmt_date_en(ctx.get('citation_date', ctx['search_date']))}.")
         fa = (strategy.get("citation") or {}).get("filter_applied")
         if fa:
             p.append(f"Of the {fa['before']:,} citation records, {fa['after']:,} whose title, abstract, or keywords contained "
@@ -121,12 +142,23 @@ def letter_draft(strategy: dict, ctx: dict) -> str:
     when = "The results were as follows." if multi else f"The results as of {fmt_date_en(ctx['search_date'])} were as follows."
     flags = ", ".join(f"{lbl} {ctx['flag_counts'].get(k, 0)}" for k, lbl, _t, _r in FLAGS if ctx["flag_counts"].get(k))
     concepts = "\n".join(f"- **{c['name']}**: {', '.join(c.get('terms', []))}" for c in strategy.get("concepts", []) if c.get("name"))
-    cit = ctx.get("citation_log") or []
-    cit_txt = (f"Reference lists and citing articles of {len(cit)} key article{'s' if len(cit) != 1 else ''} were checked, "
-               f"adding {ctx['contributed'].get('citation', 0)} records not found by the database searches."
+    cit = citation_runs(strategy, ctx)
+    n_cit = sum(ctx["contributed"].get(d, 0) for d in CITATION_SOURCES)
+    cit_txt = (f"Reference lists and citing articles of key articles were checked ({'; '.join(r['platform'] for r in cit)}), "
+               f"adding {n_cit} records not found by the database searches."
                if cit else "Once the key trials or systematic reviews are identified, we recommend checking their reference lists "
                            "and citing articles (citation searching).")
-    sources = ", ".join(db_info(d)["name"] for d in ctx["db_order"] if d != "citation")
+    sources = ", ".join(db_info(d)["name"] for d in ctx["db_order"] if d not in CITATION_SOURCES)
+    prof_txt = ""
+    if ctx.get("profile") == "systematic":
+        extra = ctx.get("nonstandard_used") or []
+        prof_txt = ("\nThis search used the systematic-review profile: bibliographic databases, trial registries and "
+                    "citation indexes that can be reported under PRISMA-S" +
+                    (f". By exception, {'; '.join(extra)} was also used; report it as a supplementary method." if extra
+                     else " were searched (no open-index citation tools or AI search services)."))
+        if ctx.get("systematic_gaps"):
+            prof_txt += " Not yet covered: " + "; ".join(ctx["systematic_gaps"]) + "."
+        prof_txt += "\n"
     val_txt = prev_txt = ""
     if ctx.get("validation"):
         v = ctx["validation"]
@@ -146,7 +178,7 @@ Thank you for your request regarding "{t}". We have completed the literature sea
 {{{{2-3 sentences on how the scope was set in light of the review objective (e.g., no restriction by study design or outcome)}}}}
 
 We searched {sources}, combining each database's controlled vocabulary with free-text terms for every concept.
-
+{prof_txt}
 {concepts}
 
 ## 2. Results and screening
